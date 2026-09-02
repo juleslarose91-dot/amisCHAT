@@ -668,8 +668,9 @@ function openChat(t,c){chatTitle=t;screen="chat";render()}
 function seed(){
   let m=$("msgs");m.innerHTML="";
   const history=chatHistoryByRoom.get(currentRoom)||[];
-  if(history.length){history.forEach(x=>msg(x.text,x.name===user,x.name,!!x.isOwner));}
-  else if(currentRoom==="PUBLIC") msg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat");
+  /* Affichage uniquement : ne jamais renvoyer les anciens messages au serveur. */
+  if(history.length){history.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}
+  else if(currentRoom==="PUBLIC") localMsg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat");
 }
 function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b);if(currentRoom==="PUBLIC" && String(who||"").trim() && String(who).trim()!==String(user||"").trim()){let a=document.createElement("button");a.className="report";a.textContent="💌 Ajouter en ami";a.style.marginLeft="6px";a.onclick=()=>{if(!amichatSocket||!multiplayerReady){alert("🔌 Connecte-toi au serveur AmiChat.");connectMultiplayer();return;}amichatSocket.emit("friendRequest",{to:String(who).trim()});};e.appendChild(a)}}$("msgs").appendChild(e)}
 function openReport(u,t){$("modalBox").innerHTML=`<h3>🚩 Signaler ${esc(u)}</h3>${reasons.map((x,i)=>`<label style="display:block;padding:8px;background:#ffffff08;margin:5px 0;border-radius:10px"><input type="radio" name="reason" value="${i}"> ${x}</label>`).join("")}<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReport('${esc(u)}','${esc(t)}')">Envoyer</button></div>`;$("modal").style.display="flex"}
