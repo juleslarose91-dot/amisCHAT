@@ -12,6 +12,30 @@ const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
 const messagesByRoom = new Map();
+const fs = require("fs");
+const DATA_FILE = path.join(__dirname, "amichat-data.json");
+
+function loadPersistentState(){
+  try{
+    if(!fs.existsSync(DATA_FILE)) return;
+    const data=JSON.parse(fs.readFileSync(DATA_FILE,"utf8"));
+    for(const [k,v] of Object.entries(data.requests||{})) requestsByUser.set(k,new Set(v));
+    for(const [k,v] of Object.entries(data.friends||{})) friendsByUser.set(k,new Set(v));
+    for(const [k,v] of Object.entries(data.messages||{})) messagesByRoom.set(k,Array.isArray(v)?v:[]);
+  }catch(e){ console.warn("Could not load AmiChat data:",e.message); }
+}
+function savePersistentState(){
+  try{
+    const obj={requests:{},friends:{},messages:{}};
+    for(const [k,v] of requestsByUser) obj.requests[k]=[...v];
+    for(const [k,v] of friendsByUser) obj.friends[k]=[...v];
+    for(const [k,v] of messagesByRoom) obj.messages[k]=v;
+    const tmp=DATA_FILE+".tmp";
+    fs.writeFileSync(tmp,JSON.stringify(obj));
+    fs.renameSync(tmp,DATA_FILE);
+  }catch(e){ console.warn("Could not save AmiChat data:",e.message); }
+}
+loadPersistentState();
 
 function key(name){ return String(name || "").trim().toLowerCase(); }
 function displayName(name){ const id=key(name); const sock=usersByName.get(id); return sock?.data?.name || String(name||"").trim().slice(0,20); }
@@ -66,7 +90,8 @@ io.on("connection", socket => {
     const history=messagesByRoom.get(room)||[]; history.push(message);
     if(history.length>200) history.shift();
     messagesByRoom.set(room,history);
-    io.to(room).emit("chatMessage",message);
+    savePersistentState();
+    io.to(room).emit("chatMessage",{...message,room});
   });
 
   socket.on("friendRequest", data=>{
@@ -77,6 +102,7 @@ io.on("connection", socket => {
     if(!usersByName.has(target)){socket.emit("serverError",{message:"Ce pseudo n'est pas connecté actuellement."});return;}
     if((friendsByUser.get(from)||new Set()).has(target)){socket.emit("serverError",{message:"Vous êtes déjà amis ❤️"});return;}
     getSet(requestsByUser,target).add(from);
+    savePersistentState();
     const targetSocket=io.sockets.sockets.get(usersByName.get(target));
     if(targetSocket){ targetSocket.emit("friendRequest",{from:socket.data.name}); sendState(targetSocket); }
     socket.emit("friendRequestSent",{to:displayName(to)});
@@ -87,6 +113,7 @@ io.on("connection", socket => {
     if(!from||!me)return;
     getSet(requestsByUser,me).delete(from);
     getSet(friendsByUser,me).add(from); getSet(friendsByUser,from).add(me);
+    savePersistentState();
     sendState(socket);
     const otherId=usersByName.get(from), other=otherId&&io.sockets.sockets.get(otherId);
     if(other){ other.emit("friendAccepted",{from:socket.data.name}); sendState(other); }
@@ -97,6 +124,7 @@ io.on("connection", socket => {
     const from=key(data.from), me=key(socket.data.name);
     if(!from||!me)return;
     getSet(requestsByUser,me).delete(from);
+    savePersistentState();
     sendState(socket);
     const otherId=usersByName.get(from), other=otherId&&io.sockets.sockets.get(otherId);
     if(other) other.emit("friendRefused",{from:socket.data.name});

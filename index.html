@@ -798,9 +798,12 @@ function connectMultiplayer(){
     amichatSocket.on("disconnect", ()=>{multiplayerReady=false;});
     amichatSocket.on("chatMessage", data=>{
       if(typeof data?.text!=="string") return;
-      const room=currentRoom;
-      if(room){const h=chatHistoryByRoom.get(room)||[]; h.push({text:data.text,name:data.name,isOwner:!!data.isOwner}); if(h.length>200)h.shift(); chatHistoryByRoom.set(room,h);}
-      if(data.name !== user){
+      const room=String(data?.room||currentRoom||"PUBLIC");
+      const h=chatHistoryByRoom.get(room)||[];
+      h.push({text:data.text,name:data.name,isOwner:!!data.isOwner});
+      if(h.length>200)h.shift();
+      chatHistoryByRoom.set(room,h);
+      if(room===currentRoom && data.name !== user){
         const box=document.getElementById("msgs");
         if(box) localMsg(data.text,false,data.name,!!data.isOwner);
       }
