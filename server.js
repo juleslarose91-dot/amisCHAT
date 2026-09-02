@@ -21,7 +21,7 @@ function loadPersistentState(){
     const data=JSON.parse(fs.readFileSync(DATA_FILE,"utf8"));
     for(const [k,v] of Object.entries(data.requests||{})) requestsByUser.set(k,new Set(v));
     for(const [k,v] of Object.entries(data.friends||{})) friendsByUser.set(k,new Set(v));
-    for(const [k,v] of Object.entries(data.messages||{})) messagesByRoom.set(k,Array.isArray(v)?v:[]);
+    for(const [k,v] of Object.entries(data.messages||{})) if(k!=="PUBLIC") messagesByRoom.set(k,Array.isArray(v)?v:[]);
   }catch(e){ console.warn("Could not load AmiChat data:",e.message); }
 }
 function savePersistentState(){
@@ -29,7 +29,7 @@ function savePersistentState(){
     const obj={requests:{},friends:{},messages:{}};
     for(const [k,v] of requestsByUser) obj.requests[k]=[...v];
     for(const [k,v] of friendsByUser) obj.friends[k]=[...v];
-    for(const [k,v] of messagesByRoom) obj.messages[k]=v;
+    for(const [k,v] of messagesByRoom) if(k!=="PUBLIC") obj.messages[k]=v;
     const tmp=DATA_FILE+".tmp";
     fs.writeFileSync(tmp,JSON.stringify(obj));
     fs.renameSync(tmp,DATA_FILE);
@@ -80,17 +80,20 @@ io.on("connection", socket => {
   socket.on("joinRoom", data=>{
     const room=String(data.room||"PUBLIC").slice(0,80);
     socket.join(room);
-    socket.emit("chatHistory", {room, messages:[...(messagesByRoom.get(room)||[])]});
+    socket.emit("chatHistory", {room, messages: room==="PUBLIC" ? [] : [...(messagesByRoom.get(room)||[])]});
   });
 
   socket.on("chatMessage", data=>{
     const room=String(data.room||"PUBLIC").slice(0,80);
     const text=String(data.text||"").trim().slice(0,300); if(!text)return;
-    const message={text,name:socket.data.name,isOwner:socket.data.isOwner};
-    const history=messagesByRoom.get(room)||[]; history.push(message);
-    if(history.length>200) history.shift();
-    messagesByRoom.set(room,history);
-    savePersistentState();
+    const message={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),text,name:socket.data.name,isOwner:socket.data.isOwner};
+    /* Le chat public est temporaire : il n'est jamais gardé dans l'historique. */
+    if(room!=="PUBLIC"){
+      const history=messagesByRoom.get(room)||[]; history.push(message);
+      if(history.length>200) history.shift();
+      messagesByRoom.set(room,history);
+      savePersistentState();
+    }
     io.to(room).emit("chatMessage",{...message,room});
   });
 

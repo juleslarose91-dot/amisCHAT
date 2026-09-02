@@ -787,11 +787,11 @@ function loadSocialCache(){
   }}catch(e){}
 }
 function saveMessageCache(room){
-  if(!user||!room)return;
+  if(!user||!room||room==="PUBLIC")return;
   try{localStorage.setItem(amichatStorageKey("messages_"+room),JSON.stringify(chatHistoryByRoom.get(room)||[]));}catch(e){}
 }
 function loadMessageCache(room){
-  if(!user||!room)return [];
+  if(!user||!room||room==="PUBLIC")return [];
   try{const d=JSON.parse(localStorage.getItem(amichatStorageKey("messages_"+room))||"[]");return Array.isArray(d)?d:[];}catch(e){return []}
 }
 
@@ -805,7 +805,7 @@ function openFriendChat(friend){
   const f=String(friend||"").trim(); if(!f)return;
   const ids=[String(user).toLowerCase(),f.toLowerCase()].sort();
   currentRoom="FRIEND_"+ids.join("_").slice(0,80);
-  const cached=loadMessageCache(currentRoom);
+  const cached=currentRoom==="PUBLIC" ? [] : loadMessageCache(currentRoom);
   if(cached.length) chatHistoryByRoom.set(currentRoom,cached);
   const oldOpen=localOpenChat; oldOpen("💬 "+f,currentRoom);
   connectMultiplayer();
@@ -826,7 +826,10 @@ function connectMultiplayer(){
       if(typeof data?.text!=="string") return;
       const room=String(data?.room||currentRoom||"PUBLIC");
       const h=chatHistoryByRoom.get(room)||[];
-      h.push({text:data.text,name:data.name,isOwner:!!data.isOwner});
+      const incoming={id:data.id||"",text:data.text,name:data.name,isOwner:!!data.isOwner};
+      const sig=String(incoming.id||"")+"|"+String(incoming.name||"")+"|"+String(incoming.text||"");
+      const already=h.some(x=>(x.id&&incoming.id&&x.id===incoming.id) || (!incoming.id && (String(x.name||"")+"|"+String(x.text||"")===String(incoming.name||"")+"|"+String(incoming.text||""))));
+      if(!already) h.push(incoming);
       if(h.length>200)h.shift();
       chatHistoryByRoom.set(room,h);
       saveMessageCache(room);
@@ -838,9 +841,9 @@ function connectMultiplayer(){
     amichatSocket.on("chatHistory", data=>{
       const room=String(data?.room||"PUBLIC");
       const serverHistory=Array.isArray(data?.messages)?data.messages:[];
-      const cachedHistory=loadMessageCache(room);
-      /* Ne jamais effacer les messages sauvegardés si le serveur renvoie un historique vide. */
-      const history=serverHistory.length ? serverHistory : cachedHistory;
+      const cachedHistory=room==="PUBLIC" ? [] : loadMessageCache(room);
+      /* Le chat public est temporaire : aucun ancien message ne revient après actualisation. */
+      const history=room==="PUBLIC" ? [] : (serverHistory.length ? serverHistory : cachedHistory);
       chatHistoryByRoom.set(room,history);
       saveMessageCache(room);
       if(room===currentRoom && document.getElementById("msgs")){
@@ -988,72 +991,5 @@ window.addEventListener("error",()=>{
 </script>
 
 
-<script>
-/* Correctif ciblé mobile : sauvegarde durable des amis et du chat public.
-   Aucun changement visuel ni aux autres fonctions. */
-(function(){
-  const DB_NAME='AmiChatMobileStore';
-  const STORE='data';
-  let dbPromise=null;
-  function db(){
-    if(dbPromise)return dbPromise;
-    dbPromise=new Promise(resolve=>{
-      if(!window.indexedDB){resolve(null);return;}
-      try{
-        const req=indexedDB.open(DB_NAME,1);
-        req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE);};
-        req.onsuccess=()=>resolve(req.result);
-        req.onerror=()=>resolve(null);
-      }catch(e){resolve(null);}
-    });
-    return dbPromise;
-  }
-  async function put(k,v){const d=await db();if(!d)return;try{await new Promise(r=>{const q=d.transaction(STORE,'readwrite').objectStore(STORE).put(v,k);q.onsuccess=q.onerror=()=>r();});}catch(e){}}
-  async function get(k){const d=await db();if(!d)return null;try{return await new Promise(r=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);});}catch(e){return null}}
-  function socialKey(){return 'social:'+String(user||'').trim().toLowerCase();}
-  function publicKey(){return 'public:'+String(user||'').trim().toLowerCase()+':'+String(server||'FR');}
-  const oldSaveSocial=window.saveSocialCache;
-  window.saveSocialCache=function(){
-    if(oldSaveSocial)oldSaveSocial();
-    if(user)put(socialKey(),{friends:Array.isArray(friends)?friends:[],requests:Array.isArray(requests)?requests:[]});
-  };
-  const oldSaveMessage=window.saveMessageCache;
-  window.saveMessageCache=function(room){
-    if(oldSaveMessage)oldSaveMessage(room);
-    if(user && room==='PUBLIC')put(publicKey(),chatHistoryByRoom.get('PUBLIC')||[]);
-  };
-  async function hydrateMobileData(){
-    if(!user)return;
-    const social=await get(socialKey());
-    if(social){
-      const merge=(a,b)=>[...new Map([...(a||[]),...(b||[])].map(x=>[String(x).trim().toLowerCase(),String(x).trim()])).values()];
-      friends=merge(friends,Array.isArray(social.friends)?social.friends:[]);
-      requests=merge(requests,Array.isArray(social.requests)?social.requests:[]);
-      if(typeof saveSocialCache==='function')saveSocialCache();
-      render();
-    }
-    const pub=await get(publicKey());
-    if(Array.isArray(pub)&&pub.length){
-      const current=chatHistoryByRoom.get('PUBLIC')||[];
-      const all=[...current];
-      const seen=new Set(current.map(x=>String(x.name)+'\u0000'+String(x.text)));
-      pub.forEach(x=>{const k=String(x?.name)+'\u0000'+String(x?.text);if(x&&typeof x.text==='string'&&!seen.has(k)){seen.add(k);all.push(x);}});
-      if(all.length>200)all.splice(0,all.length-200);
-      chatHistoryByRoom.set('PUBLIC',all);
-      if(currentRoom==='PUBLIC'&&document.getElementById('msgs')){const box=document.getElementById('msgs');box.innerHTML='';all.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}
-    }
-  }
-  window.addEventListener('load',()=>setTimeout(hydrateMobileData,0));
-  window.addEventListener('beforeunload',()=>{try{saveSocialCache();if(chatHistoryByRoom.get('PUBLIC'))saveMessageCache('PUBLIC');}catch(e){}});
-  const previousOpen=window.openChat;
-  window.openChat=function(title,room){
-    if(room==='PUBLIC'&&user){
-      get(publicKey()).then(pub=>{
-        if(Array.isArray(pub)&&pub.length){chatHistoryByRoom.set('PUBLIC',pub);if(currentRoom==='PUBLIC'&&document.getElementById('msgs')){const box=document.getElementById('msgs');box.innerHTML='';pub.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}}
-      });
-    }
-    return previousOpen(title,room);
-  };
-})();
-</script>
+
 </body></html>
