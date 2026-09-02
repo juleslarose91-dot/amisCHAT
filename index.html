@@ -146,6 +146,8 @@ header{position:relative}
 .profileSuccess h3{font-size:28px;margin:0 0 7px}.profileSuccess p{margin:0 auto;color:#d8d6ec;max-width:390px}.successStars{font-size:23px;letter-spacing:6px;margin:4px 0 12px;animation:successFloat 1.6s ease-in-out infinite alternate}.profileSuccessBtn{width:100%;margin-top:18px;border:0;border-radius:16px;padding:14px;color:#fff;font-weight:900;font-size:16px;cursor:pointer;background:linear-gradient(90deg,#7c3aed,#a855f7,#06b6d4);box-shadow:0 14px 32px #7c3aed45}
 @keyframes successPop{from{transform:scale(.45) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes successFloat{from{transform:translateY(-2px)}to{transform:translateY(3px)}}
 @media(max-width:760px){.loginHero h2{font-size:27px}.loginIdentityCard{gap:11px;padding:14px}.loginIdentityCard .avatar{width:76px;height:76px;flex-basis:76px}.loginIdentityCard h3{font-size:19px}.loginEnter{min-width:0;width:100%}}
+
+.friendDecision{text-align:center;padding:8px 4px}.friendDecisionIcon{width:88px;height:88px;margin:0 auto 14px;border-radius:28px;display:grid;place-items:center;font-size:42px;background:linear-gradient(135deg,#7c3aed,#06b6d4);box-shadow:0 18px 45px #7c3aed44;border:1px solid #ffffff35}.friendDecision h3{font-size:28px;margin:0 0 8px}.friendDecision p{color:#d8d6ec;line-height:1.5}.acceptDecision .friendDecisionIcon{background:linear-gradient(135deg,#ec4899,#7c3aed)}.refuseDecision .friendDecisionIcon{background:linear-gradient(135deg,#3b82f6,#06b6d4)}
 </style></head>
 <body><div class="app"><main class="card">
 <header><div class="topHeart" aria-label="AmiChat">❤️</div><div class="brand"><div class="logo">💬</div><div><div class="title">AmiChat</div><div class="sub"><span id="headerSub">Parle avec tes amis • 10+</span></div></div></div>
@@ -355,15 +357,14 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
   $("langEN").onclick=()=>{uiLanguage="EN";saveProfile();showSavedToast("🇬🇧 Language changed","The interface is now in English.");render()};
   $("saveProfile").onclick=()=>{let n=$("setName").value.trim(),a=$("setAge").value;if(!n)return alert(uiLanguage==="EN"?"Choose a username.":"Choisis un pseudo.");if(!a||+a<10){showAgeWarning();return;}user=n;age=a;saveProfile();showSavedToast(uiLanguage==="EN"?"Profile saved! 🎉":"Profil enregistré ! 🎉",uiLanguage==="EN"?"Your changes have been saved successfully.":"Tes modifications ont été sauvegardées avec succès.");render()};
   $("saveServer").onclick=()=>{server=$("setServer").value;saveProfile();showSavedToast(uiLanguage==="EN"?"Community saved ✨":"Communauté enregistrée ✨",uiLanguage==="EN"?"Your community has been updated.":"Ta communauté a été mise à jour.");screen="home";render()};return}
- if(screen==="friends"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>`<div class="item"><span>🟢 ${esc(f)}</span><button class="btn primary" onclick="openChat('💬 ${esc(f)}','FRIEND')">Parler</button></div>`).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;return}
+ if(screen==="friends"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>`<div class="item"><span>🟢 ${esc(f)}</span><button class="btn primary" onclick="openChat('💬 ${esc(f)}',dmRoom(user,f))">Parler</button></div>`).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;return}
  if(screen==="requests"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>💌 Demandes d'amis</h2><p class="muted">Accepte ou refuse les demandes.</p><div class="list">${requests.length?requests.map((f,i)=>`<div class="item"><span>💌 <b>${esc(f)}</b> veut devenir ton ami</span><div class="itemActions"><button class="btn primary" onclick="acceptRequest(${i})">❤️ Accepter</button><button class="btn" onclick="refuseRequest(${i})">✖ Refuser</button></div></div>`).join(""):'<div class="item">Aucune demande en attente.</div>'}</div></div>`;return}
  if(screen==="groups"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes groupes</h2><div class="list">${groups.length?groups.map(g=>`<div class="item"><span>👥 <b>${esc(g.name)}</b><br><small class="muted">Code : ${esc(g.code)}</small></span><button class="btn primary" onclick="openChat('👥 ${esc(g.name)}','${esc(g.code)}')">Ouvrir</button></div>`).join(""):'<div class="item">Aucun groupe. Crée-en un !</div>'}</div></div>`;return}
 
  if(screen==="games"){r.innerHTML=`<div class="panel"><button class="btn gamesBack" onclick="screen='home';render()">← Menu</button><div class="welcome" style="margin-top:8px"><div class="bigIcon">🎮</div><h2>Mini-jeux</h2><p>Choisis un jeu ! Les jeux peuvent aussi te donner de l'XP ⭐</p></div><div class="gamesGrid"><button class="gameCard" onclick="openGame('morpion')"><span class="gicon">❌⭕</span><b>Morpion</b><br><small class="muted">Contre le bot 🤖</small></button><button class="gameCard" onclick="openGame('rps')"><span class="gicon">🪨📄✂️</span><b>Pierre • Feuille • Ciseaux</b><br><small class="muted">Contre le bot</small></button><button class="gameCard" onclick="openGame('quiz')"><span class="gicon">🧠</span><b>Quiz</b><br><small class="muted">Réponds aux questions</small></button><button class="gameCard" onclick="openGame('memory')"><span class="gicon">🃏</span><b>Memory</b><br><small class="muted">Trouve les paires</small></button><button class="gameCard" onclick="openGame('guess')"><span class="gicon">🔢</span><b>Devine le nombre</b><br><small class="muted">Trouve le nombre secret</small></button></div></div>`;return}
  if(screen==="game"){renderSelectedGame(r);return}
  if(screen==="mod"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>🛡️ Modération</h2><div class="notice">Démo locale : une vraie modération doit être protégée côté serveur.</div><div class="list" style="margin-top:12px">${reports.length?reports.map((x,i)=>`<div class="item"><span>🚩 ${esc(x.user)} • ${esc(x.reason)}</span><button class="btn" onclick="reports.splice(${i},1);render()">Ignorer</button></div>`).join(""):'<div class="item">Aucun signalement. 👍</div>'}</div></div>`;return}
- if(screen==="chat"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><div class="chat"><div class="chatHead"><b>${esc(chatTitle)}</b><div class="muted">${server==="FR"?"Français":"English"} • Texte + emojis uniquement</div></div><div class="messages" id="msgs"></div><form class="composer" id="form"><input id="text" maxlength="300" placeholder="Écris un message…"><button class="btn primary">➤</button></form></div></div>`;seed();$("form").onsubmit=e=>{e.preventDefault();let t=$("text").value.trim();if(!t)return;if(bad.some(x=>x.test(t))){alert("⚠️ Message bloqué par le filtre.");return}msg(t,true,user);$("text").value=""};return}}
-
+ if(screen==="chat"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><div class="chat"><div class="chatHead"><b>${esc(chatTitle)}</b><div class="muted">${server==="FR"?"Français":"English"} • ${currentRoom==="PUBLIC"?"Chat public":"Discussion privée 🔒"}</div></div><div class="messages" id="msgs"></div><form class="composer" id="form"><input id="text" maxlength="300" autocomplete="off" placeholder="Écris un message…"><button class="btn primary">➤</button></form></div></div>`;seed();$("form").onsubmit=e=>{e.preventDefault();let t=$("text").value.trim();if(!t)return;if(bad.some(x=>x.test(t))){alert("⚠️ Message bloqué par le filtre.");return}msg(t,true,user);$("text").value=""};return}}
 
 /* ===== Nouveaux mini-jeux ===== */
 let selectedGame=""; let gameXPClaimed=false; let quizIndex=0, quizScore=0; let guessNumber=0, guessTries=0; let memoryDeck=[], memoryOpen=[], memoryMatched=0, memoryLock=false;
@@ -660,9 +661,16 @@ function seed(){let m=$("msgs");m.innerHTML="";msg(server==="FR"?"Bienvenue dans
 function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b)}$("msgs").appendChild(e)}
 function openReport(u,t){$("modalBox").innerHTML=`<h3>🚩 Signaler ${esc(u)}</h3>${reasons.map((x,i)=>`<label style="display:block;padding:8px;background:#ffffff08;margin:5px 0;border-radius:10px"><input type="radio" name="reason" value="${i}"> ${x}</label>`).join("")}<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReport('${esc(u)}','${esc(t)}')">Envoyer</button></div>`;$("modal").style.display="flex"}
 function sendReport(u,t){let v=document.querySelector('input[name=reason]:checked');if(!v)return alert("Choisis une raison.");reports.push({user:u,text:t,reason:reasons[v.value]});closeModal();alert("Merci, signalement envoyé.");}
-function addFriend(){$("modalBox").innerHTML=`<div class="bigIcon">💌</div><h3>Ajouter un ami</h3><p class="muted">Entre son pseudo. Dans cette démo, une demande apparaît pour tester l'acceptation.</p><input id="friendName" placeholder="Pseudo de l'ami" maxlength="20"><div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="sendFriend">Envoyer la demande ✨</button></div>`;$("modal").style.display="flex";$("sendFriend").onclick=()=>{let f=$("friendName").value.trim();if(!f)return;requests.push(f);closeModal();alert("💌 Demande créée ! Va dans « Demandes d'amis » pour tester Accepter/Refuser.");render()}}
-function acceptRequest(i){let f=requests.splice(i,1)[0];friends.push(f);alert("🎉 ${f} est maintenant ton ami !");render()}
-function refuseRequest(i){requests.splice(i,1);alert("Demande refusée.");render()}
+function dmRoom(a,b){return "DM_"+[String(a),String(b)].map(normClient).sort().join("_").slice(0,70)}
+function normClient(s){return String(s||"").trim().toLowerCase().replace(/[^a-z0-9_-]/gi,"_")}
+function addFriend(){$("modalBox").innerHTML=`<div class="bigIcon">💌</div><h3>Ajouter un ami</h3><p class="muted">Entre le pseudo exact de la personne. La demande sera envoyée directement à son compte et restera en attente jusqu'à sa réponse.</p><input id="friendName" placeholder="Pseudo de l'ami" maxlength="20" autocomplete="off"><div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="sendFriend">💌 Envoyer la demande</button></div>`;$("modal").style.display="flex";$("sendFriend").onclick=()=>{let f=$("friendName").value.trim();if(!f)return;if(!amichatSocket||!multiplayerReady){alert("Connecte-toi au serveur AmiChat pour envoyer une vraie demande.");return}amichatSocket.emit("friendRequest",{to:f});closeModal()}}
+function acceptRequest(i){let f=requests.splice(i,1)[0];if(amichatSocket&&multiplayerReady)amichatSocket.emit("friendResponse",{from:f,accept:true});friends.push(f);showFriendDecision("accept",f);render()}
+function refuseRequest(i){let f=requests.splice(i,1)[0];if(amichatSocket&&multiplayerReady)amichatSocket.emit("friendResponse",{from:f,accept:false});showFriendDecision("refuse",f);render()}
+function showFriendDecision(type,name){$("modalBox").innerHTML=type==="accept"?`<div class="friendDecision acceptDecision"><div class="friendDecisionIcon">💖</div><h3>Demande acceptée !</h3><p><b>${esc(name)}</b> est maintenant ton ami(e). Vous pouvez discuter en privé 🔒.</p><button class="profileSuccessBtn" onclick="closeModal()">✨ Super !</button></div>`:`<div class="friendDecision refuseDecision"><div class="friendDecisionIcon">💙</div><h3>Demande refusée</h3><p>La demande de <b>${esc(name)}</b> a été refusée.</p><button class="profileSuccessBtn" onclick="closeModal()">D'accord</button></div>`;$("modal").style.display="flex"}
+function acceptRequestServer(from){const i=requests.findIndex(x=>String(x).toLowerCase()===String(from).toLowerCase());if(i>=0)acceptRequest(i)}
+function refuseRequestServer(from){const i=requests.findIndex(x=>String(x).toLowerCase()===String(from).toLowerCase());if(i>=0)refuseRequest(i)}
+function applyFriendState(state){if(!state)return;friends=Array.isArray(state.friends)?state.friends:friends;requests=Array.isArray(state.requests)?state.requests.map(x=>typeof x==="string"?x:x.from):requests;render()}
+
 function createGroup(){
 $("modalBox").innerHTML=`<div class="bigIcon">👥✨</div><h3 style="text-align:center">Créer un groupe</h3>
 <p class="muted" style="text-align:center">Donne un nom à ton nouveau groupe !</p>
@@ -742,7 +750,7 @@ startAmiChat();
   Change SERVER_URL after deploying server/server.js to an HTTPS host.
   Do not put passwords or owner secrets here.
 */
-const SERVER_URL =  https://amischat.onrender.com
+const SERVER_URL = "https://amischat.onrender.com"
 let amichatSocket = null;
 let currentRoom = null;
 let multiplayerReady = false;
@@ -766,6 +774,25 @@ function connectMultiplayer(){
     });
     amichatSocket.on("presence", data=>{
       window.AmiChatOnlineUsers = data.users || [];
+    });
+    amichatSocket.on("friendState", data=>{
+      applyFriendState(data);
+    });
+    amichatSocket.on("friendRequest", data=>{
+      const from=String(data?.from||"Un ami").slice(0,20);
+      if(!requests.some(x=>String(x).toLowerCase()===from.toLowerCase())) requests.push(from);
+      render();
+      $("modalBox").innerHTML=`<div class="friendDecision"><div class="friendDecisionIcon">💌</div><h3>Nouvelle demande d'ami</h3><p><b>${esc(from)}</b> veut devenir ton ami(e) !</p><div class="modalBtns"><button class="btn" onclick="refuseRequestServer('${esc(from)}')">✖ Refuser</button><button class="btn primary" onclick="acceptRequestServer('${esc(from)}')">💖 Accepter</button></div></div>`;
+      $("modal").style.display="flex";
+    });
+    amichatSocket.on("friendResult", data=>{
+      if(data?.message){
+        showSavedToast(data.accepted===false?"Demande refusée":"Amitié",data.message);
+        if(data.accepted===true && data.from){
+          if(!friends.some(x=>String(x).toLowerCase()===String(data.from).toLowerCase())) friends.push(data.from);
+          render();
+        }
+      }
     });
     amichatSocket.on("gameInvite", data=>{
       if(!data || data.game!=="morpion") return;
