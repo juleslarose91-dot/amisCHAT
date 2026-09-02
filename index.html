@@ -671,7 +671,7 @@ function seed(){
   if(history.length){history.forEach(x=>msg(x.text,x.name===user,x.name,!!x.isOwner));}
   else if(currentRoom==="PUBLIC") msg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat");
 }
-function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b)}$("msgs").appendChild(e)}
+function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b);if(currentRoom==="PUBLIC" && String(who||"").trim() && String(who).trim()!==String(user||"").trim()){let a=document.createElement("button");a.className="report";a.textContent="💌 Ajouter en ami";a.style.marginLeft="6px";a.onclick=()=>{if(!amichatSocket||!multiplayerReady){alert("🔌 Connecte-toi au serveur AmiChat.");connectMultiplayer();return;}amichatSocket.emit("friendRequest",{to:String(who).trim()});};e.appendChild(a)}}$("msgs").appendChild(e)}
 function openReport(u,t){$("modalBox").innerHTML=`<h3>🚩 Signaler ${esc(u)}</h3>${reasons.map((x,i)=>`<label style="display:block;padding:8px;background:#ffffff08;margin:5px 0;border-radius:10px"><input type="radio" name="reason" value="${i}"> ${x}</label>`).join("")}<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReport('${esc(u)}','${esc(t)}')">Envoyer</button></div>`;$("modal").style.display="flex"}
 function sendReport(u,t){let v=document.querySelector('input[name=reason]:checked');if(!v)return alert("Choisis une raison.");reports.push({user:u,text:t,reason:reasons[v.value]});closeModal();alert("Merci, signalement envoyé.");}
 function addFriend(){
@@ -987,4 +987,73 @@ window.addEventListener("error",()=>{
 })();
 </script>
 
+
+<script>
+/* Correctif ciblé mobile : sauvegarde durable des amis et du chat public.
+   Aucun changement visuel ni aux autres fonctions. */
+(function(){
+  const DB_NAME='AmiChatMobileStore';
+  const STORE='data';
+  let dbPromise=null;
+  function db(){
+    if(dbPromise)return dbPromise;
+    dbPromise=new Promise(resolve=>{
+      if(!window.indexedDB){resolve(null);return;}
+      try{
+        const req=indexedDB.open(DB_NAME,1);
+        req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE);};
+        req.onsuccess=()=>resolve(req.result);
+        req.onerror=()=>resolve(null);
+      }catch(e){resolve(null);}
+    });
+    return dbPromise;
+  }
+  async function put(k,v){const d=await db();if(!d)return;try{await new Promise(r=>{const q=d.transaction(STORE,'readwrite').objectStore(STORE).put(v,k);q.onsuccess=q.onerror=()=>r();});}catch(e){}}
+  async function get(k){const d=await db();if(!d)return null;try{return await new Promise(r=>{const q=d.transaction(STORE,'readonly').objectStore(STORE).get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);});}catch(e){return null}}
+  function socialKey(){return 'social:'+String(user||'').trim().toLowerCase();}
+  function publicKey(){return 'public:'+String(user||'').trim().toLowerCase()+':'+String(server||'FR');}
+  const oldSaveSocial=window.saveSocialCache;
+  window.saveSocialCache=function(){
+    if(oldSaveSocial)oldSaveSocial();
+    if(user)put(socialKey(),{friends:Array.isArray(friends)?friends:[],requests:Array.isArray(requests)?requests:[]});
+  };
+  const oldSaveMessage=window.saveMessageCache;
+  window.saveMessageCache=function(room){
+    if(oldSaveMessage)oldSaveMessage(room);
+    if(user && room==='PUBLIC')put(publicKey(),chatHistoryByRoom.get('PUBLIC')||[]);
+  };
+  async function hydrateMobileData(){
+    if(!user)return;
+    const social=await get(socialKey());
+    if(social){
+      const merge=(a,b)=>[...new Map([...(a||[]),...(b||[])].map(x=>[String(x).trim().toLowerCase(),String(x).trim()])).values()];
+      friends=merge(friends,Array.isArray(social.friends)?social.friends:[]);
+      requests=merge(requests,Array.isArray(social.requests)?social.requests:[]);
+      if(typeof saveSocialCache==='function')saveSocialCache();
+      render();
+    }
+    const pub=await get(publicKey());
+    if(Array.isArray(pub)&&pub.length){
+      const current=chatHistoryByRoom.get('PUBLIC')||[];
+      const all=[...current];
+      const seen=new Set(current.map(x=>String(x.name)+'\u0000'+String(x.text)));
+      pub.forEach(x=>{const k=String(x?.name)+'\u0000'+String(x?.text);if(x&&typeof x.text==='string'&&!seen.has(k)){seen.add(k);all.push(x);}});
+      if(all.length>200)all.splice(0,all.length-200);
+      chatHistoryByRoom.set('PUBLIC',all);
+      if(currentRoom==='PUBLIC'&&document.getElementById('msgs')){const box=document.getElementById('msgs');box.innerHTML='';all.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}
+    }
+  }
+  window.addEventListener('load',()=>setTimeout(hydrateMobileData,0));
+  window.addEventListener('beforeunload',()=>{try{saveSocialCache();if(chatHistoryByRoom.get('PUBLIC'))saveMessageCache('PUBLIC');}catch(e){}});
+  const previousOpen=window.openChat;
+  window.openChat=function(title,room){
+    if(room==='PUBLIC'&&user){
+      get(publicKey()).then(pub=>{
+        if(Array.isArray(pub)&&pub.length){chatHistoryByRoom.set('PUBLIC',pub);if(currentRoom==='PUBLIC'&&document.getElementById('msgs')){const box=document.getElementById('msgs');box.innerHTML='';pub.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}}
+      });
+    }
+    return previousOpen(title,room);
+  };
+})();
+</script>
 </body></html>
