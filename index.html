@@ -724,7 +724,7 @@ function startAmiChat(){
   else if(user && age && +age>=10) screen="home";
   else screen="login";
   render();
-  if(user&&age&&+age>=10) setTimeout(()=>{ if(typeof connectMultiplayer==="function") connectMultiplayer(); },0);
+  if(user&&age&&+age>=10) setTimeout(()=>{ loadSocialCache(); if(typeof connectMultiplayer==="function") connectMultiplayer(); },0);
 }
 
 /* ===== Correctif : bouton Entrer dans AmiChat ===== */
@@ -771,6 +771,30 @@ startAmiChat();
   Change SERVER_URL after deploying server/server.js to an HTTPS host.
   Do not put passwords or owner secrets here.
 */
+/* Sauvegarde locale de secours : amis et messages restent après actualisation. */
+function amichatStorageKey(kind){
+  return "amichat_"+kind+"_"+String(user||"").trim().toLowerCase();
+}
+function saveSocialCache(){
+  if(!user)return;
+  try{localStorage.setItem(amichatStorageKey("social"),JSON.stringify({friends,requests}));}catch(e){}
+}
+function loadSocialCache(){
+  if(!user)return;
+  try{const d=JSON.parse(localStorage.getItem(amichatStorageKey("social"))||"null");if(d){
+    friends=Array.isArray(d.friends)?d.friends:friends;
+    requests=Array.isArray(d.requests)?d.requests:requests;
+  }}catch(e){}
+}
+function saveMessageCache(room){
+  if(!user||!room)return;
+  try{localStorage.setItem(amichatStorageKey("messages_"+room),JSON.stringify(chatHistoryByRoom.get(room)||[]));}catch(e){}
+}
+function loadMessageCache(room){
+  if(!user||!room)return [];
+  try{const d=JSON.parse(localStorage.getItem(amichatStorageKey("messages_"+room))||"[]");return Array.isArray(d)?d:[];}catch(e){return []}
+}
+
 const SERVER_URL = "https://amischat.onrender.com"
 let amichatSocket = null;
 let currentRoom = null;
@@ -781,6 +805,8 @@ function openFriendChat(friend){
   const f=String(friend||"").trim(); if(!f)return;
   const ids=[String(user).toLowerCase(),f.toLowerCase()].sort();
   currentRoom="FRIEND_"+ids.join("_").slice(0,80);
+  const cached=loadMessageCache(currentRoom);
+  if(cached.length) chatHistoryByRoom.set(currentRoom,cached);
   const oldOpen=localOpenChat; oldOpen("💬 "+f,currentRoom);
   connectMultiplayer();
   if(amichatSocket&&multiplayerReady)amichatSocket.emit("joinRoom",{room:currentRoom,language:server});
@@ -803,6 +829,7 @@ function connectMultiplayer(){
       h.push({text:data.text,name:data.name,isOwner:!!data.isOwner});
       if(h.length>200)h.shift();
       chatHistoryByRoom.set(room,h);
+      saveMessageCache(room);
       if(room===currentRoom && data.name !== user){
         const box=document.getElementById("msgs");
         if(box) localMsg(data.text,false,data.name,!!data.isOwner);
@@ -812,6 +839,7 @@ function connectMultiplayer(){
       const room=String(data?.room||"PUBLIC");
       const history=Array.isArray(data?.messages)?data.messages:[];
       chatHistoryByRoom.set(room,history);
+      saveMessageCache(room);
       if(room===currentRoom && document.getElementById("msgs")){
         const box=document.getElementById("msgs"); box.innerHTML="";
         history.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));
@@ -821,13 +849,19 @@ function connectMultiplayer(){
       window.AmiChatOnlineUsers = data.users || [];
     });
     amichatSocket.on("socialState", data=>{
-      requests=Array.isArray(data?.requests)?data.requests:[];
-      friends=Array.isArray(data?.friends)?data.friends:[];
+      const newRequests=Array.isArray(data?.requests)?data.requests:[];
+      const newFriends=Array.isArray(data?.friends)?data.friends:[];
+      /* Le cache évite que les amis disparaissent si le serveur répond vide après une actualisation. */
+      if(newRequests.length || newFriends.length || (!requests.length && !friends.length)){
+        requests=newRequests; friends=newFriends;
+      }
+      saveSocialCache();
       render();
     });
     amichatSocket.on("friendRequest", data=>{
       const from=String(data?.from||"").trim(); if(!from)return;
       if(!requests.includes(from))requests.push(from);
+      saveSocialCache();
       render(); openFriendRequest(from);
     });
     amichatSocket.on("friendRequestSent", data=>{
@@ -835,6 +869,7 @@ function connectMultiplayer(){
     });
     amichatSocket.on("friendAccepted", data=>{
       const f=String(data?.from||"").trim(); if(f&&!friends.includes(f))friends.push(f);
+      saveSocialCache();
       render(); showFriendToast("accepted","Demande acceptée ! 💖",`${f||"Ton ami"} a accepté ta demande. Vous êtes maintenant amis ✨`);
     });
     amichatSocket.on("friendRefused", data=>{
