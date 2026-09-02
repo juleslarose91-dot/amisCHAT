@@ -7,7 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
-const OWNER_CODE = process.env.OWNER_CODE || "";
+// Code propriétaire : compatible avec Render via OWNER_CODE ou MODERATION_CODE.
+const OWNER_CODE = process.env.OWNER_CODE || process.env.MODERATION_CODE || "admin1961";
 const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
@@ -67,7 +68,6 @@ function renamePersistentUser(oldName,newName,socket){
   socket.data.name=newName;
   savePersistentState();
   io.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
-  io.emit("userRenamed",{oldName,newName,clientId:socket.data.clientId||socket.id});
   return true;
 }
 
@@ -75,7 +75,7 @@ app.get("/", (_req,res) => res.sendFile(path.join(__dirname,"index.html")));
 app.get("/health", (_req,res) => res.json({ok:true,service:"AmiChat"}));
 
 io.on("connection", socket => {
-  socket.data.name="Utilisateur"; socket.data.language="FR"; socket.data.isOwner=false; socket.data.clientId="";
+  socket.data.name="Utilisateur"; socket.data.language="FR"; socket.data.isOwner=false;
 
   socket.on("joinServer", (data={}) => {
     const name=String(data.name||"Utilisateur").trim().slice(0,20) || "Utilisateur";
@@ -84,7 +84,7 @@ io.on("connection", socket => {
     const k=key(name);
     const old=usersByName.get(k);
     if(old && old!==socket.id) io.to(old).emit("serverError",{message:"Cette session a été remplacée par une nouvelle connexion."});
-    socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR"; socket.data.clientId=String(data.clientId||socket.id).slice(0,100);
+    socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR";
     usersByName.set(k,socket.id);
     getSet(requestsByUser,k); getSet(friendsByUser,k);
     socket.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
@@ -115,7 +115,7 @@ io.on("connection", socket => {
   socket.on("chatMessage", data=>{
     const room=String(data.room||"PUBLIC").slice(0,80);
     const text=String(data.text||"").trim().slice(0,300); if(!text)return;
-    const message={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),text,name:socket.data.name,senderId:socket.data.clientId||socket.id,isOwner:socket.data.isOwner};
+    const message={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),text,name:socket.data.name,isOwner:socket.data.isOwner};
     /* Le chat public est temporaire : il n'est jamais gardé dans l'historique. */
     if(room!=="PUBLIC"){
       const history=messagesByRoom.get(room)||[]; history.push(message);
