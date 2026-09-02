@@ -669,7 +669,7 @@ function seed(){
   let m=$("msgs");m.innerHTML="";
   const history=chatHistoryByRoom.get(currentRoom)||[];
   /* Affichage uniquement : ne jamais renvoyer les anciens messages au serveur. */
-  if(history.length){history.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));}
+  if(history.length){history.forEach(x=>localMsg(x.text,String(x.senderId||"")===String(amichatClientId||"") || String(x.name||"").trim().toLowerCase()===String(user||"").trim().toLowerCase(),x.name,!!x.isOwner));}
   else if(currentRoom==="PUBLIC") localMsg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat");
 }
 function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b);if(currentRoom==="PUBLIC" && String(who||"").trim() && String(who).trim()!==String(user||"").trim()){let a=document.createElement("button");a.className="report";a.textContent="💌 Ajouter en ami";a.style.marginLeft="6px";a.onclick=()=>{if(!amichatSocket||!multiplayerReady){alert("🔌 Connecte-toi au serveur AmiChat.");connectMultiplayer();return;}amichatSocket.emit("friendRequest",{to:String(who).trim()});};e.appendChild(a)}}$("msgs").appendChild(e)}
@@ -797,6 +797,9 @@ function loadMessageCache(room){
 }
 
 const SERVER_URL = "https://amischat.onrender.com"
+/* Identifiant stable de cet appareil/session : il permet de reconnaître correctement TES messages, même si un pseudo change. */
+let amichatClientId = localStorage.getItem("amichat_client_id");
+if(!amichatClientId){ amichatClientId=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)); localStorage.setItem("amichat_client_id",amichatClientId); }
 let amichatSocket = null;
 let currentRoom = null;
 let multiplayerReady = false;
@@ -818,7 +821,7 @@ function connectMultiplayer(){
     amichatSocket = io(SERVER_URL, {transports:["websocket","polling"], timeout:5000});
     amichatSocket.on("connect", ()=>{
       multiplayerReady = true;
-      amichatSocket.emit("joinServer", {name:user, age:Number(age), language:server});
+      amichatSocket.emit("joinServer", {name:user, age:Number(age), language:server, clientId:amichatClientId});
       if(currentRoom) amichatSocket.emit("joinRoom", {room:currentRoom, language:server});
       console.log("AmiChat multiplayer connected");
     });
@@ -827,16 +830,17 @@ function connectMultiplayer(){
       if(typeof data?.text!=="string") return;
       const room=String(data?.room||currentRoom||"PUBLIC");
       const h=chatHistoryByRoom.get(room)||[];
-      const incoming={id:data.id||"",text:data.text,name:data.name,isOwner:!!data.isOwner};
+      const incoming={id:data.id||"",text:data.text,name:data.name,senderId:data.senderId||"",isOwner:!!data.isOwner};
       const sig=String(incoming.id||"")+"|"+String(incoming.name||"")+"|"+String(incoming.text||"");
       const already=h.some(x=>(x.id&&incoming.id&&x.id===incoming.id) || (!incoming.id && (String(x.name||"")+"|"+String(x.text||"")===String(incoming.name||"")+"|"+String(incoming.text||""))));
       if(!already) h.push(incoming);
       if(h.length>200)h.shift();
       chatHistoryByRoom.set(room,h);
       saveMessageCache(room);
-      if(room===currentRoom && String(data.name||"").trim().toLowerCase() !== String(user||"").trim().toLowerCase()){
+      if(room===currentRoom){
         const box=document.getElementById("msgs");
-        if(box) localMsg(data.text,false,data.name,!!data.isOwner);
+        const isMine = String(data.senderId||"")===String(amichatClientId||"") || String(data.name||"").trim().toLowerCase()===String(user||"").trim().toLowerCase();
+        if(box && !isMine) localMsg(data.text,false,data.name,!!data.isOwner);
       }
     });
     amichatSocket.on("chatHistory", data=>{
@@ -849,7 +853,7 @@ function connectMultiplayer(){
       saveMessageCache(room);
       if(room===currentRoom && document.getElementById("msgs")){
         const box=document.getElementById("msgs"); box.innerHTML="";
-        history.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));
+        history.forEach(x=>localMsg(x.text,String(x.senderId||"")===String(amichatClientId||"") || String(x.name||"").trim().toLowerCase()===String(user||"").trim().toLowerCase(),x.name,!!x.isOwner));
       }
     });
     amichatSocket.on("presence", data=>{
@@ -869,6 +873,16 @@ function connectMultiplayer(){
     });
     amichatSocket.on("profileUpdated", data=>{
       if(data?.name) { user=String(data.name).trim(); saveProfile(); }
+    });
+    amichatSocket.on("userRenamed", data=>{
+      const oldName=String(data?.oldName||"").trim(), newName=String(data?.newName||"").trim();
+      if(!oldName||!newName||oldName===newName)return;
+      const same=a=>String(a||"").trim().toLowerCase()===oldName.toLowerCase();
+      friends=friends.map(x=>same(x)?newName:x);
+      requests=requests.map(x=>same(x)?newName:x);
+      for(const [room,h] of chatHistoryByRoom){ chatHistoryByRoom.set(room,h.map(m=>same(m.name)?{...m,name:newName}:m)); saveMessageCache(room); }
+      saveSocialCache();
+      if(screen==="friends"||screen==="requests"||screen==="chat") render();
     });
     amichatSocket.on("friendRequest", data=>{
       const from=String(data?.from||"").trim(); if(!from)return;
@@ -928,7 +942,7 @@ window.openChat = function(title, room){
 function joinMultiplayerServer(){
   connectMultiplayer();
   if(amichatSocket && multiplayerReady){
-    amichatSocket.emit("joinServer",{name:user,age:Number(age),language:server});
+    amichatSocket.emit("joinServer",{name:user,age:Number(age),language:server,clientId:amichatClientId});
   }
 }
 
