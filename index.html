@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17113b">
+<title>AmiChat v3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap');
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Nunito,system-ui,sans-serif;color:#fff;background:radial-gradient(circle at 10% 10%,#a855f766,transparent 30%),radial-gradient(circle at 90% 15%,#22d3ee44,transparent 26%),linear-gradient(135deg,#09051a,#17113b 55%,#061b2b)}
+button,input,select{font:inherit}.app{min-height:100vh;display:grid;place-items:center;padding:14px}.card{width:min(1100px,100%);height:min(800px,96vh);overflow:hidden;border:1px solid #ffffff24;border-radius:28px;background:#ffffff0c;backdrop-filter:blur(20px);box-shadow:0 35px 120px #0009}
+header{height:72px;padding:0 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffffff15}.brand{display:flex;gap:11px;align-items:center}.logo{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#8b5cf6,#06b6d4);font-size:23px;box-shadow:0 10px 30px #7c3aed55}.title{font-weight:900;font-size:18px}.sub,.muted{font-size:12px;color:#c4b5fd}.headerBtns{display:flex;gap:7px}.btn{border:1px solid #ffffff15;border-radius:13px;padding:10px 13px;color:#fff;font-weight:800;cursor:pointer;background:#ffffff10}.btn:hover{filter:brightness(1.15);transform:translateY(-1px)}.primary,.enter{background:linear-gradient(90deg,#7c3aed,#a855f7,#06b6d4);box-shadow:0 10px 25px #7c3aed33}.screen{height:calc(100% - 72px);overflow:auto;padding:25px}.welcome,.panel{max-width:850px;margin:auto}.welcome h2,.menu h2{text-align:center;font-size:35px;margin:5px 0 8px;background:linear-gradient(90deg,#fff,#ddd6fe,#a5f3fc);-webkit-background-clip:text;color:transparent}.welcome>p{text-align:center;color:#d5ddea}.rules,.profileGrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin:20px 0}.rule,.item{padding:16px;border:1px solid #ffffff14;border-radius:18px;background:#ffffff08;box-shadow:inset 0 1px #ffffff0b}.rule h3{margin:0 0 8px}.rule li{margin:6px 0;color:#dbe4f0;font-size:13px}.accept{display:flex;gap:10px;align-items:center;justify-content:center;margin:18px 0}.enter{display:block;margin:auto;padding:14px 25px;border:0;border-radius:15px;color:#fff;font-weight:900;cursor:pointer}.enter:disabled{opacity:.4;cursor:not-allowed}.menu{max-width:760px;margin:20px auto}.menuGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.menuBtn{min-height:88px;text-align:left;padding:18px;border-radius:18px;border:1px solid #ffffff14;background:#ffffff09;color:white;cursor:pointer;font-weight:900;font-size:16px;transition:.2s}.menuBtn:hover{transform:translateY(-3px);background:#ffffff13}.menuBtn small{color:#cbd5e1}.list{display:grid;gap:10px}.item{display:flex;justify-content:space-between;gap:12px;align-items:center}.itemActions{display:flex;gap:7px;flex-wrap:wrap}.chat{display:flex;flex-direction:column;height:570px}.chatHead{padding:13px 15px;border-bottom:1px solid #ffffff12}.messages{flex:1;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:10px}.msg{max-width:75%;padding:11px 14px;border-radius:17px 17px 17px 5px;background:#ffffff12}.mine{align-self:flex-end;border-radius:17px 17px 5px 17px;background:linear-gradient(135deg,#6d28d9,#4f46e5)}.meta{font-size:10px;color:#cbd5e1;margin-top:5px}.composer{display:flex;gap:8px;padding:12px;border-top:1px solid #ffffff12}.composer input,input,select{padding:13px;border-radius:13px;border:1px solid #ffffff20;background:#080b1bcc;color:white;outline:0}.composer input{flex:1}input,select{width:100%}input:focus,select:focus{border-color:#22d3ee;box-shadow:0 0 0 3px #22d3ee22}.actions{margin-top:7px}.report{padding:6px 8px;border-radius:9px;background:#ef444422;color:#fecaca;border:1px solid #ef444455;cursor:pointer;font-size:11px}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:15px;z-index:5}.modalBox{width:min(520px,100%);padding:22px;border-radius:22px;background:#19152f;border:1px solid #ffffff20;box-shadow:0 25px 80px #0009}.modalBtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.bigIcon{text-align:center;font-size:54px}.profileCard{text-align:center;padding:20px}.avatar{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;font-size:36px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);box-shadow:0 12px 35px #7c3aed55}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#22d3ee22;color:#a5f3fc;font-size:12px;font-weight:900}.notice{padding:12px 14px;border-radius:14px;background:#f59e0b18;border:1px solid #f59e0b33;color:#fde68a;font-size:13px}@media(max-width:650px){.rules,.profileGrid,.menuGrid{grid-template-columns:1fr}.screen{padding:15px}.headerBtns .btn{padding:8px}.chat{height:620px}}
+
+/* v5: Mobile, tablette et PC */
+html{height:100%;-webkit-text-size-adjust:100%}
+body{min-height:100%;overflow-x:hidden}
+button{touch-action:manipulation}
+@media(max-width:900px){
+ .app{padding:8px;align-items:stretch}
+ .card{width:100%;height:calc(100vh - 16px);min-height:620px;border-radius:22px}
+ .screen{padding:18px}
+}
+@media(max-width:650px){
+ header{height:64px;padding:0 12px}
+ .card{height:100vh;min-height:100vh;border-radius:0;border-left:0;border-right:0}
+ .screen{height:calc(100% - 64px);padding:13px}
+ .logo{width:38px;height:38px;border-radius:13px;font-size:20px}
+ .title{font-size:16px}.sub{font-size:10px}
+ .headerBtns{gap:4px}.headerBtns .btn{font-size:11px;padding:8px 9px}
+ .welcome h2,.menu h2{font-size:28px;line-height:1.1}
+ .welcome>p{font-size:14px}
+ .rules,.profileGrid,.menuGrid{grid-template-columns:1fr;gap:10px}
+ .rule,.item{border-radius:16px;padding:14px}
+ .menu{margin:5px auto}
+ .menuBtn{min-height:76px;padding:15px;border-radius:16px}
+ .menuBtn small{font-size:11px}
+ .chat{height:calc(100vh - 145px);min-height:420px}
+ .chatHead{padding:11px}
+ .messages{padding:11px}
+ .msg{max-width:88%;font-size:14px}
+ .composer{padding:9px;gap:6px}
+ .composer input{min-width:0;padding:12px}
+ .modal{padding:10px}
+ .modalBox{padding:18px;border-radius:19px;max-height:90vh;overflow:auto}
+ .modalBtns{flex-wrap:wrap}
+ .modalBtns .btn{flex:1;min-width:120px}
+ .avatar{width:74px;height:74px;font-size:31px}
+ input,select{font-size:16px} /* évite le zoom automatique sur iPhone */
+}
+@media(min-width:651px) and (max-width:1000px){
+ .card{width:min(900px,100%)}
+ .menuGrid{grid-template-columns:1fr 1fr}
+ .chat{height:600px}
+}
+
+
+/* ===== AmiChat v6 — interface sociale améliorée ===== */
+.dashboardTop{display:grid;grid-template-columns:240px 1fr 250px;gap:14px;max-width:1450px;margin:auto}
+.sideCard{border:1px solid #ffffff16;background:#ffffff08;border-radius:22px;padding:14px}
+.profileHero{text-align:center;padding:16px;margin-bottom:12px}
+.profilePhotoWrap{position:relative;width:108px;height:108px;margin:4px auto 12px}
+.profilePhoto,.profileFallback{width:108px;height:108px;border-radius:50%;object-fit:cover;border:3px solid #a855f7;box-shadow:0 0 28px #8b5cf699;background:linear-gradient(135deg,#8b5cf6,#06b6d4);display:grid;place-items:center;font-size:42px}
+.cameraBtn{position:absolute;right:-2px;bottom:3px;width:38px;height:38px;border:0;border-radius:50%;background:#7c3aed;color:#fff;cursor:pointer;font-size:18px;box-shadow:0 8px 18px #0008}
+.levelBox{padding:11px;border-radius:14px;background:#0b0d20aa;border:1px solid #ffffff12;margin-top:12px}.levelBox{cursor:pointer;transition:.2s}.levelBox:hover{transform:translateY(-2px);border-color:#a855f7aa;box-shadow:0 10px 28px #0005}.levelHint{font-size:10px;color:#c4b5fd;margin-top:7px;display:block}
+.progress{height:8px;border-radius:999px;background:#ffffff12;overflow:hidden}.progress>span{display:block;width:58%;height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899)}
+.navMini{display:grid;gap:7px;margin-top:12px}.navMini button{text-align:left}
+.homeCenter{min-width:0}.heroPanel{padding:20px;border:1px solid #ffffff16;border-radius:22px;background:linear-gradient(135deg,#17113bcc,#071b2bcc)}
+.heroPanel h2{margin:0;font-size:28px}.quickGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.quickCard{padding:15px;border-radius:17px;border:1px solid #ffffff15;background:#ffffff09;color:#fff;text-align:left;cursor:pointer;font-weight:900;transition:.2s}
+.quickCard:hover{transform:translateY(-2px);border-color:#a855f7aa;background:#ffffff12}.quickCard span{display:block;font-size:25px;margin-bottom:6px}
+.rightList h3{margin:5px 0 12px;font-size:14px}.onlineRow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #ffffff0d}.dot{width:9px;height:9px;border-radius:50%;background:#4ade80}
+.fakeAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffffff12;font-size:20px}
+.uploadNote{font-size:11px;color:#cbd5e1;margin-top:8px}
+.profileSettingsPreview{display:flex;align-items:center;gap:14px;padding:12px;border-radius:16px;background:#ffffff08;margin-bottom:14px}
+.profileSettingsPreview img{width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid #a855f7}
+@media(max-width:1100px){.dashboardTop{grid-template-columns:220px 1fr}.rightList{display:none}}
+@media(max-width:760px){.dashboardTop{display:block}.sideCard{margin-bottom:12px}.quickGrid{grid-template-columns:1fr 1fr}.profileHero{display:flex;align-items:center;text-align:left;gap:14px}.profilePhotoWrap{margin:0}.navMini{display:grid;grid-template-columns:1fr 1fr}.heroPanel h2{font-size:24px}}
+@media(max-width:430px){.quickGrid{grid-template-columns:1fr}.profileHero{display:block;text-align:center}.profilePhotoWrap{margin:4px auto 12px}.navMini{grid-template-columns:1fr}}
+
+
+/* ===== Ajouts demandés : cœur, sons et mini-jeu Morpion ===== */
+header{position:relative}
+.topHeart{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+  background:#ffffff10;border:2px solid #ffffff55;font-size:25px;
+  box-shadow:0 8px 24px #0005;pointer-events:none
+}
+.gameBoard{display:grid;grid-template-columns:repeat(3,92px);gap:8px;justify-content:center;margin:18px auto}
+.gameCell{
+  width:92px;height:92px;border:1px solid #ffffff25;border-radius:18px;
+  background:#ffffff0b;color:#fff;font-size:42px;font-weight:900;cursor:pointer
+}
+.gameCell:hover{background:#ffffff18}
+.gameStatus{text-align:center;font-weight:900;min-height:26px;margin:10px 0}
+.gameActions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.gameHint{text-align:center;color:#c4b5fd;font-size:12px}
+@media(max-width:650px){
+  .topHeart{width:40px;height:40px;font-size:21px;border-radius:10px}
+  .gameBoard{grid-template-columns:repeat(3,76px);gap:7px}
+  .gameCell{width:76px;height:76px;font-size:36px;border-radius:15px}
+}
+
+
+/* ===== Mini-jeux supplémentaires ===== */
+.gamesGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:760px;margin:16px auto}.gameCard{padding:18px;border:1px solid #ffffff18;border-radius:18px;background:#ffffff08;text-align:left;cursor:pointer;color:#fff}.gameCard:hover{transform:translateY(-2px);background:#ffffff12}.gameCard .gicon{font-size:32px;display:block;margin-bottom:7px}.gameArea{max-width:560px;margin:16px auto;text-align:center}.memoryBoard{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:15px auto}.memoryCard{min-height:64px;border-radius:14px;border:1px solid #ffffff18;background:#ffffff12;color:#fff;font-size:26px;cursor:pointer}.memoryCard.flipped{background:linear-gradient(135deg,#7c3aed,#06b6d4)}.rpsChoices{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0}.rpsChoices button{font-size:26px;min-width:100px}.quizOption{display:block;width:100%;margin:8px 0;text-align:left}.guessInput{max-width:240px;margin:12px auto;display:block}.gameResult{min-height:28px;font-weight:900;margin:10px 0}.gamesBack{margin-bottom:8px}@media(max-width:650px){.gamesGrid{grid-template-columns:1fr}.memoryCard{min-height:56px}}
+
+/* ===== AmiChat v8 — Profil premium + vraies langues FR/EN ===== */
+.profilePremium{max-width:1120px;margin:0 auto}
+.settingsHero{position:relative;overflow:hidden;padding:24px;border-radius:24px;border:1px solid #ffffff18;background:linear-gradient(135deg,#211747dd,#142b42dd);margin-bottom:16px}
+.settingsHero:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;right:-60px;top:-90px;background:#22d3ee22;filter:blur(8px)}
+.settingsHero h2{margin:0;font-size:32px}.settingsHero p{margin:6px 0 0;color:#d8d4f5}
+.profilePremiumGrid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+.premiumPanel{padding:20px;border-radius:24px;border:1px solid #ffffff18;background:linear-gradient(145deg,#ffffff0c,#ffffff06);box-shadow:0 18px 45px #0003}
+.premiumPanel h3{margin:0 0 6px;font-size:22px}.premiumPanel .muted{font-size:13px}
+.identityPreview{display:flex;align-items:center;gap:16px;padding:15px;border-radius:19px;background:linear-gradient(135deg,#090b20cc,#181a36cc);border:1px solid #ffffff12;margin:16px 0}
+.identityPreview .avatar,.identityPreview .profilePhoto{width:92px;height:92px;margin:0;flex:0 0 92px}
+.identityPreviewName{font-size:23px;font-weight:900}.identityPreviewMeta{margin-top:4px;color:#c8c5e6}
+.prettyField{position:relative;margin-top:14px}
+.prettyLabel{display:flex;gap:8px;align-items:center;margin:0 0 7px;font-size:13px;font-weight:900;color:#dedcff}
+.prettyInput{width:100%;padding:16px 16px 16px 48px;border-radius:17px;border:1px solid #ffffff18;background:#080b1be8;color:#fff;font-weight:800;font-size:16px;transition:.2s}
+.prettyInput:focus{border-color:#22d3ee;box-shadow:0 0 0 4px #22d3ee18,0 10px 25px #0004;transform:translateY(-1px)}
+.fieldIcon{position:absolute;left:17px;bottom:16px;font-size:18px;pointer-events:none}
+.savePremium{width:100%;margin-top:18px;padding:15px;border:0;border-radius:17px;color:#fff;font-weight:900;font-size:17px;cursor:pointer;background:linear-gradient(90deg,#7c3aed,#a855f7,#06b6d4);box-shadow:0 14px 32px #7c3aed38;transition:.2s}
+.savePremium:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.languageChoice{width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:17px;margin-top:11px;border-radius:19px;border:1px solid #ffffff16;background:#ffffff08;color:#fff;cursor:pointer;transition:.2s}
+.languageChoice:hover{transform:translateY(-2px);background:#ffffff10}.languageChoice.active{border-color:#22d3eeaa;box-shadow:0 0 0 2px #22d3ee18,0 12px 28px #0003;background:linear-gradient(90deg,#8b5cf622,#22d3ee18)}
+.flagBubble{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#ffffff10;font-size:24px}.languageChoice strong{font-size:17px}.languageChoice small{display:block;color:#c7c4e3;margin-top:2px}.languageCheck{margin-left:auto;font-size:24px;color:#5eead4}
+.communityBox{margin-top:18px;padding-top:18px;border-top:1px solid #ffffff14}
+.ageWarningBox{text-align:center;padding:8px 4px}.ageWarningBadge{width:78px;height:78px;margin:0 auto 12px;border-radius:24px;display:grid;place-items:center;font-size:38px;background:linear-gradient(135deg,#ef4444,#f97316);box-shadow:0 18px 45px #ef444455;border:1px solid #ffffff35}.ageWarningTitle{font-size:26px;margin:4px 0 8px}.ageWarningText{color:#d8d6ec;line-height:1.55;margin:0 auto 16px;max-width:390px}.ageWarningRule{padding:12px 15px;border-radius:15px;background:#ef444418;border:1px solid #ef444455;color:#fecaca;font-weight:900;margin:12px 0}.ageWarningBtn{width:100%;border:0;border-radius:15px;padding:13px 18px;color:#fff;font-weight:900;cursor:pointer;background:linear-gradient(90deg,#ef4444,#f97316);box-shadow:0 12px 28px #ef444433}.ageWarningBtn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.toastSaved{position:fixed;z-index:50;top:88px;left:50%;transform:translate(-50%,-20px);min-width:290px;max-width:min(500px,90vw);padding:14px 18px;border-radius:18px;display:flex;gap:12px;align-items:center;color:#fff;background:linear-gradient(135deg,#18233f,#312060);border:1px solid #ffffff25;box-shadow:0 22px 70px #0008;opacity:0;pointer-events:none;transition:.35s}
+.toastSaved.show{opacity:1;transform:translate(-50%,0)}.toastSavedIcon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#22c55e33;border:1px solid #4ade8088;font-size:22px}
+.toastSaved b{display:block;font-size:15px}.toastSaved span{display:block;font-size:12px;color:#d8d6ec;margin-top:2px}
+@media(max-width:760px){.profilePremiumGrid{grid-template-columns:1fr}.settingsHero h2{font-size:26px}.premiumPanel{padding:16px}.identityPreview{gap:11px}.identityPreview .avatar,.identityPreview .profilePhoto{width:76px;height:76px;flex-basis:76px}.identityPreviewName{font-size:19px}}
+
+/* ===== Création de profil premium (même style que Mon profil) ===== */
+.loginPremium{max-width:1120px;margin:0 auto;padding-bottom:12px}
+.loginHero{text-align:center;padding:8px 0 16px}.loginHero .bigIcon{font-size:48px;margin-bottom:4px}
+.loginHero h2{margin:0;font-size:34px;background:linear-gradient(90deg,#fff,#ddd6fe,#a5f3fc);-webkit-background-clip:text;color:transparent}
+.loginHero p{margin:8px 0 0;color:#d8d6ec}
+.loginPremium .premiumPanel{min-height:350px}
+.loginIdentityCard{display:flex;align-items:center;gap:16px;padding:18px;border-radius:20px;background:linear-gradient(135deg,#090b20dd,#1a1b38cc);border:1px solid #ffffff14;margin:14px 0 18px}
+.loginIdentityCard .avatar{width:92px;height:92px;margin:0;flex:0 0 92px}.loginIdentityCard h3{margin:0 0 5px;font-size:23px}.loginIdentityCard p{margin:0;color:#c8c5e6}
+.loginServerCard{padding:18px;border-radius:20px;background:linear-gradient(135deg,#0d1026cc,#1b2440cc);border:1px solid #ffffff14;margin-top:14px}
+.loginServerCard h3{margin:0 0 7px;font-size:21px}.loginServerCard select{margin-top:13px}
+.loginEnterWrap{display:flex;justify-content:center;margin-top:20px}.loginEnter{min-width:310px;font-size:18px;padding:16px 25px}
+.profileSuccess{text-align:center;padding:8px 2px 4px}.profileSuccessIcon{width:88px;height:88px;margin:0 auto 14px;border-radius:28px;display:grid;place-items:center;font-size:42px;background:linear-gradient(135deg,#22c55e,#06b6d4);box-shadow:0 18px 45px #06b6d455;border:1px solid #ffffff45;animation:successPop .5s cubic-bezier(.2,.8,.2,1)}
+.profileSuccess h3{font-size:28px;margin:0 0 7px}.profileSuccess p{margin:0 auto;color:#d8d6ec;max-width:390px}.successStars{font-size:23px;letter-spacing:6px;margin:4px 0 12px;animation:successFloat 1.6s ease-in-out infinite alternate}.profileSuccessBtn{width:100%;margin-top:18px;border:0;border-radius:16px;padding:14px;color:#fff;font-weight:900;font-size:16px;cursor:pointer;background:linear-gradient(90deg,#7c3aed,#a855f7,#06b6d4);box-shadow:0 14px 32px #7c3aed45}
+@keyframes successPop{from{transform:scale(.45) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes successFloat{from{transform:translateY(-2px)}to{transform:translateY(3px)}}
+@media(max-width:760px){.loginHero h2{font-size:27px}.loginIdentityCard{gap:11px;padding:14px}.loginIdentityCard .avatar{width:76px;height:76px;flex-basis:76px}.loginIdentityCard h3{font-size:19px}.loginEnter{min-width:0;width:100%}}
+</style></head>
+<body><div class="app"><main class="card">
+<header><div class="topHeart" aria-label="AmiChat">❤️</div><div class="brand"><div class="logo">💬</div><div><div class="title">AmiChat</div><div class="sub"><span id="headerSub">Parle avec tes amis • 10+</span></div></div></div>
+<div class="headerBtns"><button class="btn" id="rulesBtn">📜 <span id="rulesBtnText">Règles</span></button><button class="btn" id="modBtn">🛡️ <span id="modBtnText">Modération</span></button></div></header>
+<div id="root" class="screen"><div class="welcome" id="startupFallback">
+<div class="bigIcon">💬✨</div><h2>Bienvenue sur AmiChat !</h2>
+<p>Chargement des règles…</p></div></div></main></div>
+<div class="modal" id="modal"><div class="modalBox" id="modalBox"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+let user="",age="",server="FR",uiLanguage="FR",profileImage="",screen="rules",reports=[],friends=[],requests=[],groups=[],chatTitle="",currentMsg=null;
+let level=1, levelXP=580;
+const MAX_LEVEL=50;
+const XP_PER_LEVEL=1000;
+const XP_PER_MESSAGE=10;
+let isOwner=false; // Le statut propriétaire est vérifié par le serveur.
+const reasons=["😡 Insulte ou harcèlement","⚠️ Menace","🔞 Contenu inapproprié","🗯️ Propos haineux","📢 Spam","🔗 Lien suspect","💰 Demande d'argent","🔐 Informations personnelles","❓ Autre"];
+const bad=[/pute|connard|salope|fdp/i,/je vais te tuer|je vais te frapper/i,/nude|porno|sexuel/i,/https?:\/\/|www\./i];
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function closeModal(){$("modal").style.display="none"}
+function showAgeWarning(){
+  const en=uiLanguage==="EN";
+  $("modalBox").innerHTML=`<div class="ageWarningBox"><div class="ageWarningBadge">🔞</div><h3 class="ageWarningTitle">${en?"Not allowed":"Accès interdit"}</h3><p class="ageWarningText">${en?"AmiChat is reserved for users aged 10 and over.":"AmiChat est réservé aux personnes âgées de 10 ans et plus."}</p><div class="ageWarningRule">${en?"⚠️ Please enter an age of 10 or more.":"⚠️ Corrige ton âge : 10 ans minimum."}</div><button class="ageWarningBtn" onclick="closeModal()">${en?"Okay, I understand":"D'accord, je corrige"} ✨</button></div>`;
+  $("modal").style.display="flex";
+}
+
+function showSavedToast(title, message){
+  let el=document.getElementById("savedToast");
+  if(!el){el=document.createElement("div");el.id="savedToast";el.className="toastSaved";document.body.appendChild(el);}
+  el.innerHTML=`<div class="toastSavedIcon">✓</div><div><b>${esc(title)}</b><span>${esc(message)}</span></div>`;
+  el.classList.add("show");clearTimeout(window.__savedToastTimer);
+  window.__savedToastTimer=setTimeout(()=>el.classList.remove("show"),3200);
+}
+function finishLogin(){
+  const nameInput=$("name"), ageInput=$("age"), serverInput=$("server");
+  const chosenName=nameInput?nameInput.value.trim():"";
+  const chosenAge=ageInput?Number(ageInput.value):0;
+  const chosenServer=serverInput?serverInput.value:"FR";
+  if(!chosenName){ alert("Choisis un pseudo ✨"); if(nameInput) nameInput.focus(); return; }
+  if(!chosenAge || chosenAge<10){ showAgeWarning(); if(ageInput) ageInput.focus(); return; }
+  user=chosenName; age=String(chosenAge); server=chosenServer; saveProfile();
+  $("modalBox").innerHTML=`<div class="profileSuccess"><div class="successStars">✨ 🎉 ✨</div><div class="profileSuccessIcon">✓</div><h3>Profil enregistré !</h3><p>Ton profil AmiChat est prêt. Bienvenue, ${esc(user)} !</p><button class="profileSuccessBtn" id="continueAmiChat">🚀 Entrer dans AmiChat</button></div>`;
+  $("modal").style.display="flex";
+  $("continueAmiChat").onclick=()=>{ closeModal(); if(typeof connectMultiplayer==="function"){try{connectMultiplayer()}catch(e){}} screen="home";render(); };
+}
+
+function applyLanguageChrome(){
+  const en=uiLanguage==="EN";
+  const sub=$("headerSub"),rules=$("rulesBtnText"),mod=$("modBtnText");
+  if(sub)sub.textContent=en?"Chat with your friends • 10+":"Parle avec tes amis • 10+";
+  if(rules)rules.textContent=en?"Rules":"Règles";
+  if(mod)mod.textContent=en?"Moderation":"Modération";
+  document.documentElement.lang=en?"en":"fr";
+}
+function rulesHTML(){return `<div class="welcome"><div class="bigIcon">💬✨</div><h2>Bienvenue sur AmiChat !</h2><p>Une communauté conviviale réservée aux personnes de <b>10 ans et plus</b>.</p><div class="rules"><div class="rule"><h3>❤️ Respect</h3><ul><li>Respecte les autres.</li><li>Pas d'insultes ni de harcèlement.</li><li>Pas de menaces.</li><li>Pas de contenu inapproprié.</li></ul></div><div class="rule"><h3>🔒 Sécurité</h3><ul><li>Ne partage pas de mot de passe.</li><li>Ne donne pas ton adresse ou ta localisation.</li><li>Ne demande pas d'informations personnelles.</li><li>Signale les comportements inquiétants.</li></ul></div></div><label class="accept"><input type="checkbox" id="accepted"> J'ai lu et compris les règles</label><button class="enter" id="enter" disabled>Entrer dans AmiChat ✨</button></div>`}
+function render(){
+ const r=$("root");
+ if(screen==="rules"){r.innerHTML=rulesHTML();$("accepted").onchange=e=>$("enter").disabled=!e.target.checked;$("enter").onclick=()=>{localStorage.setItem("amichat_rules","1");screen="login";render()};return}
+ if(screen==="login"){
+  const L=uiLanguage==="EN";
+  const tx=L?{
+    title:"Create your profile",subtitle:"Choose a nice username and your age. 10 years minimum.",
+    profile:"👤 Create my profile",profileHelp:"Your name and age will be visible on your profile.",
+    future:"Your future AmiChat profile ✨",futureHelp:"Add a username, your age and, if you want, a picture.",
+    photo:"📷 Choose a picture",name:"✨ Your username",nameHint:"Choose the name your friends will see.",
+    age:"🎂 Your age",ageHint:"AmiChat is for ages 10 and up.",
+    language:"🌍 Language",languageHelp:"Choose the language of the interface.",
+    fr:"French",frHelp:"French interface",en:"English",enHelp:"English interface",
+    community:"🌐 Community / server",communityHelp:"Choose the community you want to use.",
+    save:"💾 Save my profile",note:"Your profile will be saved on this device in this demonstration version."
+  }:{
+    title:"Crée ton petit profil",subtitle:"Choisis un pseudo sympa et ton âge. 10 ans minimum.",
+    profile:"👤 Créer mon profil",profileHelp:"Ton nom et ton âge seront visibles sur ton profil.",
+    future:"Ton futur profil ✨",futureHelp:"Ajoute ton pseudo, ton âge et, si tu veux, une photo.",
+    photo:"📷 Choisir une image",name:"✨ Ton nom / pseudo",nameHint:"Choisis le nom que tes amis verront.",
+    age:"🎂 Ton âge",ageHint:"AmiChat est réservé aux personnes de 10 ans et plus.",
+    language:"🌍 Langue",languageHelp:"Choisis la langue de l'interface.",
+    fr:"Français",frHelp:"Interface en français",en:"English",enHelp:"English interface",
+    community:"🌐 Communauté / serveur",communityHelp:"Choisis la communauté que tu veux utiliser.",
+    save:"💾 Enregistrer mon profil",note:"Ton profil sera enregistré sur cet appareil dans cette version de démonstration."
+  };
+  r.innerHTML=`<div class="profilePremium loginPremium">
+    <div class="settingsHero loginHero">
+      <div class="bigIcon">🫶</div>
+      <h2>${tx.title}</h2><p>${tx.subtitle}</p>
+    </div>
+    <div class="profilePremiumGrid">
+      <section class="premiumPanel">
+        <h3>${tx.profile}</h3><p class="muted">${tx.profileHelp}</p>
+        <div class="identityPreview">
+          ${profileImage?`<img class="profilePhoto" src="${profileImage}" alt="Photo de profil">`:`<div class="avatar">😊</div>`}
+          <div><div class="identityPreviewName">${tx.future}</div>
+          <div class="identityPreviewMeta">${tx.futureHelp}</div>
+          <button class="btn primary" id="loginPhoto" style="margin-top:9px">${tx.photo}</button></div>
+        </div>
+        <div class="prettyField"><div class="prettyLabel">👤 ${tx.name}</div><span class="fieldIcon">✨</span>
+          <input class="prettyInput" id="name" value="${esc(user)}" placeholder="${L?"Choose your username":"Choisis ton pseudo"}" maxlength="20" autocomplete="nickname">
+          <small class="muted">${tx.nameHint}</small>
+        </div>
+        <div class="prettyField"><div class="prettyLabel">🎂 ${tx.age}</div><span class="fieldIcon">🎂</span>
+          <input class="prettyInput" id="age" value="${esc(age)}" type="number" min="10" max="99" placeholder="10" inputmode="numeric">
+          <small class="muted">${tx.ageHint}</small>
+        </div>
+        <button class="savePremium" id="go">${tx.save}</button>
+      </section>
+      <section class="premiumPanel">
+        <h3>${tx.language}</h3><p class="muted">${tx.languageHelp}</p>
+        <button class="languageChoice ${uiLanguage==="FR"?"active":""}" id="loginLangFR">
+          <span class="flagBubble">FR</span><span><strong>${tx.fr}</strong><small>${tx.frHelp}</small></span>${uiLanguage==="FR"?'<span class="languageCheck">✓</span>':""}
+        </button>
+        <button class="languageChoice ${uiLanguage==="EN"?"active":""}" id="loginLangEN">
+          <span class="flagBubble">GB</span><span><strong>${tx.en}</strong><small>${tx.enHelp}</small></span>${uiLanguage==="EN"?'<span class="languageCheck">✓</span>':""}
+        </button>
+        <div class="communityBox">
+          <div class="prettyLabel">${tx.community}</div><p class="muted">${tx.communityHelp}</p>
+          <select id="server">
+            <option value="FR" ${server==="FR"?"selected":""}>FR ${L?"French Server":"Serveur Français"}</option>
+            <option value="EN" ${server==="EN"?"selected":""}>GB English Server</option>
+          </select>
+          <div class="notice" style="margin-top:14px">💡 ${tx.note}</div>
+        </div>
+      </section>
+    </div>
+  </div>`;
+  $("loginPhoto").onclick=chooseProfileImage;
+  $("loginLangFR").onclick=()=>{uiLanguage="FR";saveProfile();render()};
+  $("loginLangEN").onclick=()=>{uiLanguage="EN";saveProfile();render()};
+  $("go").onclick=finishLogin;return}
+ if(screen==="home"){
+let lang=server==="FR"?"🇫🇷 Serveur Français":"🇬🇧 English Server";
+r.innerHTML=`<div class="dashboardTop">
+<aside class="sideCard"><div class="profileHero">
+<div class="profilePhotoWrap">${avatarHTML()}<button class="cameraBtn" onclick="chooseProfileImage()" title="Changer la photo">📷</button></div>
+<div><h2 style="margin:0">${esc(user)}</h2><div class="badge">🟢 En ligne</div><div class="uploadNote">${age} ans • ${lang}</div></div></div>
+<div class="levelBox" onclick="openLevel()"><b>⭐ Niveau ${level}${level>=MAX_LEVEL?" • MAX":""}</b><div class="progress" style="margin:8px 0"><span style="width:${level>=MAX_LEVEL?100:Math.min(100,(levelXP/XP_PER_LEVEL)*100)}%"></span></div><small class="muted">${level>=MAX_LEVEL?"Niveau maximum atteint 👑":`${levelXP} / ${XP_PER_LEVEL} XP`}</small><span class="levelHint">Clique pour voir ton niveau • +${XP_PER_MESSAGE} XP par message</span></div>
+<div class="navMini">
+<button class="btn" onclick="openChat('🌍 Chat public • ${server}','PUBLIC')">💬 Discussion</button>
+<button class="btn" onclick="screen='friends';render()">👥 Amis (${friends.length})</button>
+<button class="btn" onclick="screen='groups';render()">👥 Groupes</button>
+<button class="btn" onclick="screen='settings';render()">⚙️ Paramètres</button>
+<button class="btn" onclick="screen='games';render()">🎮 Jeux</button>
+</div></aside>
+<section class="homeCenter">
+<div class="heroPanel"><div class="bigIcon">💜</div><h2>Bienvenue, ${esc(user)} !</h2>
+<p class="muted">Discute, ajoute des amis et crée ton propre groupe.</p>
+<div class="quickGrid">
+<button class="quickCard" onclick="openChat('🌍 Chat public • ${server}','PUBLIC')"><span>💬</span>Chat public<small class="muted">Discute avec la communauté</small></button>
+<button class="quickCard" onclick="addFriend()"><span>💌</span>Ajouter un ami<small class="muted">Envoie une demande</small></button>
+<button class="quickCard" onclick="createGroup()"><span>👥</span>Créer un groupe<small class="muted">Invite tes amis</small></button>
+<button class="quickCard" onclick="screen='games';render()"><span>🎮</span>Mini-jeux<small class="muted">Morpion + 4 nouveaux jeux</small></button>
+</div></div>
+<div class="menu" style="max-width:none;margin:14px 0 0"><h2 style="font-size:24px">Ton AmiChat ✨</h2>
+<div class="menuGrid">
+<button class="menuBtn" onclick="screen='requests';render()">💌<br>Demandes d'amis<br><small>${requests.length} en attente</small></button>
+<button class="menuBtn" onclick="screen='friends';render()">👥<br>Mes amis<br><small>${friends.length} ami(s)</small></button>
+<button class="menuBtn" onclick="screen='groups';render()">👥<br>Mes groupes</button>
+<button class="menuBtn" onclick="screen='settings';render()">⚙️<br>Personnaliser mon profil</button>
+</div></div></section>
+<aside class="sideCard rightList"><h3>🟢 UTILISATEURS EN LIGNE</h3>
+${["Lina_21","AlexGaming","ChocoCat","Emma","Noah"].map((n,i)=>`<div class="onlineRow"><div class="fakeAvatar">${["👩","🧑","🐱","👩","🧑"][i]}</div><div><b>${n}</b><br><small style="color:#86efac">● En ligne</small></div></div>`).join("")}
+<h3 style="margin-top:18px">🔥 GROUPES POPULAIRES</h3>
+${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onlineRow"><div class="fakeAvatar">👥</div><div><b>${n}</b><br><small class="muted">Communauté</small></div></div>`).join("")}
+</aside></div>`;return}
+ if(screen==="settings"){
+  const L=uiLanguage==="EN";
+  const tx=L?{
+    back:"← Menu",title:"⚙️ My profile",subtitle:"Make your AmiChat profile truly yours.",profile:"👤 Edit my profile",
+    profileHelp:"Your name and age are displayed on your profile.",photo:"Profile picture",personalize:"Personalize your profile",
+    photoBtn:"📷 Choose a picture",name:"✨ Your username",nameHint:"Choose the name your friends will see.",
+    age:"🎂 Your age",ageHint:"AmiChat is for ages 10 and up.",save:"💾 Save my profile",
+    language:"🌍 Language",languageHelp:"Choose the language of the interface.",fr:"French",frHelp:"French interface",
+    en:"English",enHelp:"English interface",community:"🌐 Community / server",communityHelp:"Choose the community you want to use.",
+    saveCommunity:"✨ Save community",serverNote:"Changing the community selects the chat space. The interface language is controlled separately above."
+  }:{
+    back:"← Menu",title:"⚙️ Mon profil",subtitle:"Personnalise ton identité et choisis la langue d'AmiChat.",profile:"👤 Modifier mon profil",
+    profileHelp:"Ton nom et ton âge sont visibles sur ton profil.",photo:"Photo de profil",personalize:"Personnalise ton profil",
+    photoBtn:"📷 Choisir une image",name:"✨ Ton nom / pseudo",nameHint:"Choisis le nom que tes amis verront.",
+    age:"🎂 Ton âge",ageHint:"AmiChat est réservé aux personnes de 10 ans et plus.",save:"💾 Enregistrer mon profil",
+    language:"🌍 Langue",languageHelp:"Choisis la langue de l'interface.",fr:"Français",frHelp:"Interface en français",
+    en:"English",enHelp:"English interface",community:"🌐 Communauté / serveur",communityHelp:"Choisis la communauté que tu veux utiliser.",
+    saveCommunity:"✨ Enregistrer la communauté",serverNote:"Le changement de communauté sélectionne l'espace de discussion. La langue de l'interface se règle séparément juste au-dessus."
+  };
+  r.innerHTML=`<div class="profilePremium">
+    <div class="settingsHero"><button class="btn" onclick="screen='home';render()">${tx.back}</button><h2 style="margin-top:15px">${tx.title}</h2><p>${tx.subtitle}</p></div>
+    <div class="profilePremiumGrid">
+      <section class="premiumPanel">
+        <h3>${tx.profile}</h3><p class="muted">${tx.profileHelp}</p>
+        <div class="identityPreview">${profileImage?`<img class="profilePhoto" src="${profileImage}" alt="${tx.photo}">`:`<div class="avatar">😊</div>`}
+          <div><div class="identityPreviewName">${esc(user||"Ami")}</div><div class="identityPreviewMeta">${esc(age||"10")} ${L?"years old":"ans"} • AmiChat</div>
+          <button class="btn primary" onclick="chooseProfileImage()" style="margin-top:9px">${tx.photoBtn}</button></div></div>
+        <div class="prettyField"><div class="prettyLabel">👤 ${tx.name}</div><span class="fieldIcon">✨</span><input class="prettyInput" id="setName" value="${esc(user)}" maxlength="20" autocomplete="nickname"><small class="muted">${tx.nameHint}</small></div>
+        <div class="prettyField"><div class="prettyLabel">🎂 ${tx.age}</div><span class="fieldIcon">🎂</span><input class="prettyInput" id="setAge" value="${esc(age)}" type="number" min="10" max="99" inputmode="numeric"><small class="muted">${tx.ageHint}</small></div>
+        <button class="savePremium" id="saveProfile">${tx.save}</button>
+      </section>
+      <section class="premiumPanel">
+        <h3>${tx.language}</h3><p class="muted">${tx.languageHelp}</p>
+        <button class="languageChoice ${uiLanguage==="FR"?"active":""}" id="langFR"><span class="flagBubble">🇫🇷</span><span><strong>${tx.fr}</strong><small>${tx.frHelp}</small></span>${uiLanguage==="FR"?'<span class="languageCheck">✓</span>':""}</button>
+        <button class="languageChoice ${uiLanguage==="EN"?"active":""}" id="langEN"><span class="flagBubble">🇬🇧</span><span><strong>${tx.en}</strong><small>${tx.enHelp}</small></span>${uiLanguage==="EN"?'<span class="languageCheck">✓</span>':""}</button>
+        <div class="communityBox"><div class="prettyLabel">${tx.community}</div><p class="muted">${tx.communityHelp}</p>
+          <select id="setServer"><option value="FR" ${server==="FR"?"selected":""}>🇫🇷 ${L?"French Server":"Serveur Français"}</option><option value="EN" ${server==="EN"?"selected":""}>🇬🇧 English Server</option></select>
+          <button class="btn primary" id="saveServer" style="margin-top:14px;width:100%">${tx.saveCommunity}</button>
+          <div class="notice" style="margin-top:14px">💡 ${tx.serverNote}</div>
+        </div>
+      </section>
+    </div></div>`;
+  $("langFR").onclick=()=>{uiLanguage="FR";saveProfile();showSavedToast("🇫🇷 Langue changée","L'interface est maintenant en français.");render()};
+  $("langEN").onclick=()=>{uiLanguage="EN";saveProfile();showSavedToast("🇬🇧 Language changed","The interface is now in English.");render()};
+  $("saveProfile").onclick=()=>{let n=$("setName").value.trim(),a=$("setAge").value;if(!n)return alert(uiLanguage==="EN"?"Choose a username.":"Choisis un pseudo.");if(!a||+a<10){showAgeWarning();return;}user=n;age=a;saveProfile();showSavedToast(uiLanguage==="EN"?"Profile saved! 🎉":"Profil enregistré ! 🎉",uiLanguage==="EN"?"Your changes have been saved successfully.":"Tes modifications ont été sauvegardées avec succès.");render()};
+  $("saveServer").onclick=()=>{server=$("setServer").value;saveProfile();showSavedToast(uiLanguage==="EN"?"Community saved ✨":"Communauté enregistrée ✨",uiLanguage==="EN"?"Your community has been updated.":"Ta communauté a été mise à jour.");screen="home";render()};return}
+ if(screen==="friends"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>`<div class="item"><span>🟢 ${esc(f)}</span><button class="btn primary" onclick="openChat('💬 ${esc(f)}','FRIEND')">Parler</button></div>`).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;return}
+ if(screen==="requests"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>💌 Demandes d'amis</h2><p class="muted">Accepte ou refuse les demandes.</p><div class="list">${requests.length?requests.map((f,i)=>`<div class="item"><span>💌 <b>${esc(f)}</b> veut devenir ton ami</span><div class="itemActions"><button class="btn primary" onclick="acceptRequest(${i})">❤️ Accepter</button><button class="btn" onclick="refuseRequest(${i})">✖ Refuser</button></div></div>`).join(""):'<div class="item">Aucune demande en attente.</div>'}</div></div>`;return}
+ if(screen==="groups"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes groupes</h2><div class="list">${groups.length?groups.map(g=>`<div class="item"><span>👥 <b>${esc(g.name)}</b><br><small class="muted">Code : ${esc(g.code)}</small></span><button class="btn primary" onclick="openChat('👥 ${esc(g.name)}','${esc(g.code)}')">Ouvrir</button></div>`).join(""):'<div class="item">Aucun groupe. Crée-en un !</div>'}</div></div>`;return}
+
+ if(screen==="games"){r.innerHTML=`<div class="panel"><button class="btn gamesBack" onclick="screen='home';render()">← Menu</button><div class="welcome" style="margin-top:8px"><div class="bigIcon">🎮</div><h2>Mini-jeux</h2><p>Choisis un jeu ! Les jeux peuvent aussi te donner de l'XP ⭐</p></div><div class="gamesGrid"><button class="gameCard" onclick="openGame('morpion')"><span class="gicon">❌⭕</span><b>Morpion</b><br><small class="muted">Contre le bot 🤖</small></button><button class="gameCard" onclick="openGame('rps')"><span class="gicon">🪨📄✂️</span><b>Pierre • Feuille • Ciseaux</b><br><small class="muted">Contre le bot</small></button><button class="gameCard" onclick="openGame('quiz')"><span class="gicon">🧠</span><b>Quiz</b><br><small class="muted">Réponds aux questions</small></button><button class="gameCard" onclick="openGame('memory')"><span class="gicon">🃏</span><b>Memory</b><br><small class="muted">Trouve les paires</small></button><button class="gameCard" onclick="openGame('guess')"><span class="gicon">🔢</span><b>Devine le nombre</b><br><small class="muted">Trouve le nombre secret</small></button></div></div>`;return}
+ if(screen==="game"){renderSelectedGame(r);return}
+ if(screen==="mod"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>🛡️ Modération</h2><div class="notice">Démo locale : une vraie modération doit être protégée côté serveur.</div><div class="list" style="margin-top:12px">${reports.length?reports.map((x,i)=>`<div class="item"><span>🚩 ${esc(x.user)} • ${esc(x.reason)}</span><button class="btn" onclick="reports.splice(${i},1);render()">Ignorer</button></div>`).join(""):'<div class="item">Aucun signalement. 👍</div>'}</div></div>`;return}
+ if(screen==="chat"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><div class="chat"><div class="chatHead"><b>${esc(chatTitle)}</b><div class="muted">${server==="FR"?"Français":"English"} • Texte + emojis uniquement</div></div><div class="messages" id="msgs"></div><form class="composer" id="form"><input id="text" maxlength="300" placeholder="Écris un message…"><button class="btn primary">➤</button></form></div></div>`;seed();$("form").onsubmit=e=>{e.preventDefault();let t=$("text").value.trim();if(!t)return;if(bad.some(x=>x.test(t))){alert("⚠️ Message bloqué par le filtre.");return}msg(t,true,user);$("text").value=""};return}}
+
+
+/* ===== Nouveaux mini-jeux ===== */
+let selectedGame=""; let gameXPClaimed=false; let quizIndex=0, quizScore=0; let guessNumber=0, guessTries=0; let memoryDeck=[], memoryOpen=[], memoryMatched=0, memoryLock=false;
+function openGame(name){selectedGame=name;screen="game";gameXPClaimed=false;render();}
+function gameXP(amount=20){if(gameXPClaimed) return; gameXPClaimed=true; levelXP+=amount; while(levelXP>=XP_PER_LEVEL&&level<MAX_LEVEL){levelXP-=XP_PER_LEVEL;level++;} if(level>=MAX_LEVEL){level=MAX_LEVEL;levelXP=XP_PER_LEVEL;} saveProfile();}
+function gameShell(title,icon,body){return `<div class="panel"><button class="btn" onclick="screen='games';render()">← Mini-jeux</button><div class="gameArea"><div class="bigIcon">${icon}</div><h2>${title}</h2>${body}</div></div>`}
+function renderSelectedGame(r){
+ if(selectedGame==='morpion'){r.innerHTML=gameShell('Morpion','❌⭕',`<div class="rule"><div class="gameHint">Tu joues avec ❌ • le bot joue avec ⭕</div><div id="gameStatus" class="gameStatus">À toi de jouer !</div><div id="gameBoard" class="gameBoard"></div><div class="gameActions"><button class="btn primary" onclick="restartMorpion()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMorpion,0);return}
+ if(selectedGame==='rps'){r.innerHTML=gameShell('Pierre • Feuille • Ciseaux','🪨📄✂️',`<div class="rule"><p>Choisis ton coup contre le bot 🤖</p><div class="rpsChoices"><button class="btn" onclick="playRPS('🪨')">🪨</button><button class="btn" onclick="playRPS('📄')">📄</button><button class="btn" onclick="playRPS('✂️')">✂️</button></div><div id="rpsResult" class="gameResult">À toi !</div><div class="gameActions"><button class="btn primary" onclick="openGame('rps')">🔄 Rejouer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);return}
+ if(selectedGame==='quiz'){startNewQuizRound();quizIndex=0;quizScore=0;renderQuiz(r);return}
+ if(selectedGame==='memory'){r.innerHTML=gameShell('Memory','🃏',`<div class="rule"><div class="gameHint">Trouve toutes les paires.</div><div id="memoryBoard" class="memoryBoard"></div><div id="memoryResult" class="gameResult"></div><div class="gameActions"><button class="btn primary" onclick="startMemory()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMemory,0);return}
+ if(selectedGame==='guess'){guessNumber=Math.floor(Math.random()*20)+1;guessTries=0;r.innerHTML=gameShell('Devine le nombre','🔢',`<div class="rule"><p>Le bot a choisi un nombre entre <b>1 et 20</b>.</p><input id="guessInput" class="guessInput" type="number" min="1" max="20" placeholder="Ton nombre"><button class="btn primary" onclick="checkGuess()">Deviner 🎯</button><div id="guessResult" class="gameResult"></div><small class="muted">Essaie autant de fois que tu veux.</small><div class="gameActions"><button class="btn primary" onclick="openGame('guess')">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);return}
+}
+function playRPS(choice){const a=['🪨','📄','✂️'], bot=a[Math.floor(Math.random()*3)];const win=(choice==='🪨'&&bot==='✂️')||(choice==='📄'&&bot==='🪨')||(choice==='✂️'&&bot==='📄');const draw=choice===bot; const el=$('rpsResult');el.textContent=`Toi ${choice} • Bot ${bot} — ${draw?'🤝 Égalité !':win?'🎉 Tu gagnes !':'🤖 Le bot gagne !'}`;if(win)gameXP(20);}
+// Banque de questions : chaque nouvelle partie choisit 3 questions différentes.
+const quizBank=[
+{id:'colors1',q:'Quelle couleur obtient-on avec bleu + jaune ?',a:['Vert','Rouge','Violet'],c:0},
+{id:'math1',q:'Combien font 5 + 7 ?',a:['10','12','13'],c:1},
+{id:'animal1',q:'Quel animal dit « miaou » ?',a:['Chat','Chien','Lion'],c:0},
+{id:'capital1',q:'Quelle est la capitale de la France ?',a:['Paris','Lyon','Marseille'],c:0},
+{id:'planet1',q:'Quelle planète est surnommée la planète rouge ?',a:['Mars','Vénus','Jupiter'],c:0},
+{id:'math2',q:'Combien font 9 × 6 ?',a:['54','45','56'],c:0},
+{id:'ocean1',q:'Quel est le plus grand océan ?',a:['Pacifique','Atlantique','Arctique'],c:0},
+{id:'animal2',q:'Quel animal est connu pour être le plus grand mammifère ?',a:['Baleine bleue','Éléphant','Girafe'],c:0},
+{id:'science1',q:'Quelle partie du corps pompe le sang ?',a:['Le cœur','Le poumon','Le cerveau'],c:0},
+{id:'math3',q:'Combien font 100 ÷ 4 ?',a:['20','25','40'],c:1},
+{id:'geo1',q:'Dans quel continent se trouve le Japon ?',a:['Asie','Europe','Afrique'],c:0},
+{id:'nature1',q:'Quel gaz les plantes utilisent-elles principalement pour la photosynthèse ?',a:['Dioxyde de carbone','Oxygène','Azote'],c:0},
+{id:'music1',q:'Combien y a-t-il de jours dans une semaine ?',a:['5','7','10'],c:1},
+{id:'math4',q:'Combien font 8 + 9 ?',a:['15','16','17'],c:2},
+{id:'animal3',q:'Quel animal pond des œufs ?',a:['Poule','Chat','Chien'],c:0},
+{id:'space1',q:'Comment s’appelle notre étoile ?',a:['Le Soleil','La Lune','Mars'],c:0},
+{id:'geo2',q:'Quel est le plus grand continent ?',a:['Asie','Europe','Océanie'],c:0},
+{id:'science2',q:'À quelle température l’eau gèle-t-elle en degrés Celsius ?',a:['0 °C','50 °C','100 °C'],c:0},
+{id:'math5',q:'Combien font 7 × 8 ?',a:['54','56','64'],c:1},
+{id:'animal4',q:'Quel animal possède une longue trompe ?',a:['Éléphant','Cheval','Tigre'],c:0},
+{id:'history1',q:'Quel moyen de transport vole dans le ciel ?',a:['Avion','Bateau','Train'],c:0},
+{id:'nature2',q:'Quel organe nous permet principalement de voir ?',a:['Les yeux','Les oreilles','Le nez'],c:0},
+{id:'math6',q:'Combien font 30 - 12 ?',a:['16','18','20'],c:1},
+{id:'geo3',q:'Quel pays a la forme d’une botte sur la carte ?',a:['Italie','Espagne','Portugal'],c:0}
+];
+let quizQuestions=[];
+let lastQuizIds=[];
+
+function shuffleQuizArray(arr){
+  const copy=[...arr];
+  for(let i=copy.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]]=[copy[j],copy[i]];
+  }
+  return copy;
+}
+
+function startNewQuizRound(){
+  // On évite de reprendre immédiatement les mêmes questions que la partie précédente.
+  let pool=quizBank.filter(q=>!lastQuizIds.includes(q.id));
+  if(pool.length<3) pool=[...quizBank];
+  quizQuestions=shuffleQuizArray(pool).slice(0,3).map(q=>{
+    const answers=q.a.map((label,index)=>({label,correct:index===q.c}));
+    const shuffled=shuffleQuizArray(answers);
+    return {
+      id:q.id,
+      q:q.q,
+      a:shuffled.map(x=>x.label),
+      c:shuffled.findIndex(x=>x.correct)
+    };
+  });
+  lastQuizIds=quizQuestions.map(q=>q.id);
+}
+
+function renderQuiz(r){
+  const q=quizQuestions[quizIndex];
+  r.innerHTML=gameShell('Quiz','🧠',`<div class="rule"><div class="badge">Question ${quizIndex+1}/${quizQuestions.length}</div><h3>${q.q}</h3>${q.a.map((x,i)=>`<button class="btn quizOption" onclick="answerQuiz(${i})">${x}</button>`).join('')}<div class="gameResult">Score : ${quizScore}</div></div>`);
+}
+function answerQuiz(i){
+  if(i===quizQuestions[quizIndex].c) quizScore++;
+  quizIndex++;
+  if(quizIndex>=quizQuestions.length){
+    gameXP(quizScore*10);
+    const r=$('root');
+    r.innerHTML=gameShell('Quiz terminé','🏆',`<div class="rule"><h3>Score : ${quizScore}/${quizQuestions.length}</h3><p>${quizScore===quizQuestions.length?'🎉 Parfait !':'Bravo !'}</p><p class="muted">La prochaine partie aura de nouvelles questions.</p><div class="gameActions"><button class="btn primary" onclick="openGame('quiz')">🔄 Nouvelles questions</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);
+    return;
+  }
+  renderQuiz($('root'));
+}
+function startMemory(){const icons=['🍀','⭐','🎮','💜','🍀','⭐','🎮','💜'];memoryDeck=icons.sort(()=>Math.random()-.5);memoryOpen=[];memoryMatched=0;memoryLock=false;drawMemory();}
+function drawMemory(){const b=$('memoryBoard');if(!b)return;b.innerHTML='';memoryDeck.forEach((x,i)=>{const open=memoryOpen.includes(i)||x===null;const bt=document.createElement('button');bt.className='memoryCard'+(open?' flipped':'');bt.textContent=open?(x===null?'✅':x):'❓';bt.disabled=x===null;bt.onclick=()=>flipMemory(i);b.appendChild(bt)});}
+function flipMemory(i){if(memoryLock||memoryOpen.includes(i)||memoryDeck[i]===null)return;memoryOpen.push(i);drawMemory();if(memoryOpen.length===2){memoryLock=true;const [a,b]=memoryOpen;if(memoryDeck[a]===memoryDeck[b]){setTimeout(()=>{memoryDeck[a]=memoryDeck[b]=null;memoryOpen=[];memoryMatched+=2;memoryLock=false;drawMemory();if(memoryMatched===memoryDeck.length){$('memoryResult').textContent='🎉 Tu as gagné !';gameXP(30);}},350)}else{setTimeout(()=>{memoryOpen=[];memoryLock=false;drawMemory()},650)}}}
+function checkGuess(){const inp=$('guessInput'),out=$('guessResult');const n=Number(inp.value);if(!n||n<1||n>20){out.textContent='Choisis un nombre entre 1 et 20.';return}guessTries++;if(n===guessNumber){out.textContent=`🎉 Gagné en ${guessTries} essai(s) !`;gameXP(20);return}out.textContent=n<guessNumber?'⬆️ Plus grand !':'⬇️ Plus petit !';inp.value='';inp.focus();}
+
+/* ===== Morpion corrigé ===== */
+let morpionBoard = [];
+let morpionOver = false;
+let morpionBotBusy = false;
+const morpionWins = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function morpionWinner(board){
+  for(const line of morpionWins){
+    const a=line[0], b=line[1], c=line[2];
+    if(board[a] !== "" && board[a] === board[b] && board[a] === board[c]){
+      return board[a];
+    }
+  }
+  if(board.every(cell => cell !== "")) return "draw";
+  return "";
+}
+
+function startMorpion(){
+  morpionBoard = ["","","","","","","","",""];
+  morpionOver = false;
+  morpionBotBusy = false;
+  drawMorpion();
+}
+
+function drawMorpion(){
+  const boardEl = $("gameBoard");
+  const status = $("gameStatus");
+  if(!boardEl || !status) return;
+
+  const result = morpionWinner(morpionBoard);
+
+  if(result === "X"){
+    status.textContent = "🎉 Tu as gagné ! Bravo ! Tu peux recommencer.";
+    morpionOver = true;
+  } else if(result === "O"){
+    status.textContent = "🤖 Le bot a gagné ! Tu peux recommencer.";
+    morpionOver = true;
+  } else if(result === "draw"){
+    status.textContent = "🤝 Match nul ! Tu peux recommencer.";
+    morpionOver = true;
+  } else if(morpionBotBusy){
+    status.textContent = "🤖 Le bot réfléchit…";
+  } else {
+    status.textContent = "À toi de jouer !";
+  }
+
+  boardEl.innerHTML = "";
+  for(let i=0;i<9;i++){
+    const cell = document.createElement("button");
+    cell.className = "gameCell";
+    cell.textContent = morpionBoard[i];
+    // Une case vide reste cliquable tant que la partie n'est pas terminée.
+    cell.disabled = morpionOver || morpionBotBusy || morpionBoard[i] !== "";
+    cell.onclick = () => playMorpion(i);
+    boardEl.appendChild(cell);
+  }
+}
+
+function playMorpion(i){
+  if(morpionOver || morpionBotBusy || morpionBoard[i] !== "") return;
+
+  // Le joueur place X.
+  morpionBoard[i] = "X";
+
+  // IMPORTANT : on vérifie immédiatement si le joueur a gagné.
+  const playerResult = morpionWinner(morpionBoard);
+  if(playerResult === "X" || playerResult === "draw"){
+    drawMorpion();
+    return;
+  }
+
+  // Ensuite seulement le bot joue.
+  morpionBotBusy = true;
+  drawMorpion();
+
+  setTimeout(() => {
+    if(morpionOver) return;
+
+    const move = bestMorpionMove(morpionBoard);
+    if(move !== -1 && morpionBoard[move] === ""){
+      morpionBoard[move] = "O";
+    }
+
+    morpionBotBusy = false;
+    drawMorpion();
+  }, 400);
+}
+
+function bestMorpionMove(board){
+  // 1. Le bot gagne s'il le peut.
+  for(let i=0;i<9;i++){
+    if(board[i] === ""){
+      board[i] = "O";
+      if(morpionWinner(board) === "O"){
+        board[i] = "";
+        return i;
+      }
+      board[i] = "";
+    }
+  }
+
+  // 2. Le bot bloque une victoire immédiate du joueur.
+  for(let i=0;i<9;i++){
+    if(board[i] === ""){
+      board[i] = "X";
+      if(morpionWinner(board) === "X"){
+        board[i] = "";
+        return i;
+      }
+      board[i] = "";
+    }
+  }
+
+  // 3. Sinon, choix parmi les cases disponibles.
+  const free = [];
+  for(let i=0;i<9;i++) if(board[i] === "") free.push(i);
+  if(!free.length) return -1;
+
+  // Priorité au centre, puis coins, puis autre case.
+  if(board[4] === "") return 4;
+  const corners = [0,2,6,8].filter(i => board[i] === "");
+  if(corners.length) return corners[Math.floor(Math.random()*corners.length)];
+  return free[Math.floor(Math.random()*free.length)];
+}
+
+function restartMorpion(){
+  startMorpion();
+}
+
+function inviteFriendToGame(){
+  const gameNames={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+  const game=selectedGame||"morpion";
+  const gameName=gameNames[game]||"Mini-jeu";
+  $("modalBox").innerHTML = `<div class="bigIcon">🎮💌</div>
+    <h3 style="text-align:center">Inviter un ami</h3>
+    <p class="muted" style="text-align:center">Choisis un ami pour lui proposer une partie de ${esc(gameName)}.</p>
+    ${friends.length
+      ? `<select id="gameFriend">${friends.map(f=>`<option>${esc(f)}</option>`).join("")}</select>`
+      : `<div class="notice">Tu n'as pas encore d'ami dans cette démo. Ajoute d'abord un ami dans « Mes amis ».</div>`}
+    <div class="modalBtns">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      ${friends.length ? `<button class="btn primary" onclick="sendGameInvite('${game}')">🎮 Inviter</button>` : ""}
+    </div>`;
+  $("modal").style.display = "flex";
+}
+
+function sendGameInvite(game){
+  const f = $("gameFriend")?.value;
+  if(!f) return;
+  closeModal();
+  const gameNames={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+  const gameName=gameNames[game]||"Mini-jeu";
+  if(amichatSocket && multiplayerReady){
+    amichatSocket.emit("gameInvite", {to:f, game:game});
+    alert(`🎮 Invitation envoyée à ${f} pour jouer à ${gameName} !`);
+  }else{
+    alert(`🎮 Invitation préparée pour ${f} pour jouer à ${gameName}. Connecte-toi au serveur multijoueur pour envoyer une invitation en ligne.`);
+  }
+}
+
+
+function avatarHTML(cls="profilePhoto"){
+  return profileImage
+    ? `<img class="${cls}" src="${profileImage}" alt="Photo de profil">`
+    : `<div class="profileFallback">😊</div>`;
+}
+function chooseProfileImage(){
+  $("modalBox").innerHTML=`<div class="bigIcon">📸</div><h3 style="text-align:center">Ta photo de profil</h3>
+  <p class="muted" style="text-align:center">Choisis une image sur ton appareil. Elle reste enregistrée localement sur cet appareil dans ce prototype.</p>
+  <input id="profileFile" type="file" accept="image/*">
+  <div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="savePhoto">✨ Utiliser cette photo</button></div>`;
+  $("modal").style.display="flex";
+  $("savePhoto").onclick=()=>{
+    const f=$("profileFile").files[0];
+    if(!f){alert("Choisis une image.");return}
+    if(f.size>2*1024*1024){alert("Choisis une image de moins de 2 Mo.");return}
+    const reader=new FileReader();
+    reader.onload=()=>{profileImage=reader.result;saveProfile();closeModal();render()};
+    reader.readAsDataURL(f);
+  };
+}
+
+function saveProfile(){localStorage.setItem("amichat_profile",JSON.stringify({user,age,server,uiLanguage,profileImage,level,levelXP}))}
+function loadProfile(){try{let p=JSON.parse(localStorage.getItem("amichat_profile"));if(p){user=p.user||"";age=p.age||"";server=p.server||"FR";uiLanguage=p.uiLanguage==="EN"?"EN":"FR";profileImage=p.profileImage||"";level=Math.max(1,Math.min(MAX_LEVEL,Number(p.level)||1));levelXP=Math.max(0,Math.min(XP_PER_LEVEL,Number(p.levelXP)||580));if(level>=MAX_LEVEL)levelXP=XP_PER_LEVEL}}catch(e){}}
+function openLevel(){
+  const percent=level>=MAX_LEVEL?100:Math.min(100,Math.round((levelXP/XP_PER_LEVEL)*100));
+  const remaining=level>=MAX_LEVEL?0:Math.max(0,XP_PER_LEVEL-levelXP);
+  $("modalBox").innerHTML=`<div class="bigIcon">⭐</div><h2 style="text-align:center">Niveau ${level}${level>=MAX_LEVEL?" 👑":""}</h2><div class="levelBox" style="cursor:default"><div class="progress" style="margin:10px 0"><span style="width:${percent}%"></span></div><b>${level>=MAX_LEVEL?"NIVEAU MAXIMUM 50":`${levelXP} / ${XP_PER_LEVEL} XP`}</b><br><small class="muted">${level>=MAX_LEVEL?"Bravo ! Tu as atteint le dernier niveau.":`Encore ${remaining} XP pour le niveau ${level+1}.`}</small></div><p class="muted" style="text-align:center">💬 Chaque message envoyé dans AmiChat te donne +${XP_PER_MESSAGE} XP.</p><p class="muted" style="text-align:center">🏁 Le dernier niveau est le niveau ${MAX_LEVEL}.</p><div class="modalBtns"><button class="btn primary" onclick="closeModal()">Compris ✨</button></div>`;
+  $("modal").style.display="flex";
+}
+function addMessageXP(){
+  if(level>=MAX_LEVEL) return;
+  levelXP+=XP_PER_MESSAGE;
+  while(levelXP>=XP_PER_LEVEL && level<MAX_LEVEL){levelXP-=XP_PER_LEVEL;level++;}
+  if(level>=MAX_LEVEL){level=MAX_LEVEL;levelXP=XP_PER_LEVEL;}
+  saveProfile();
+}
+function openChat(t,c){chatTitle=t;screen="chat";render()}
+function seed(){let m=$("msgs");m.innerHTML="";msg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat")}
+function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b)}$("msgs").appendChild(e)}
+function openReport(u,t){$("modalBox").innerHTML=`<h3>🚩 Signaler ${esc(u)}</h3>${reasons.map((x,i)=>`<label style="display:block;padding:8px;background:#ffffff08;margin:5px 0;border-radius:10px"><input type="radio" name="reason" value="${i}"> ${x}</label>`).join("")}<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReport('${esc(u)}','${esc(t)}')">Envoyer</button></div>`;$("modal").style.display="flex"}
+function sendReport(u,t){let v=document.querySelector('input[name=reason]:checked');if(!v)return alert("Choisis une raison.");reports.push({user:u,text:t,reason:reasons[v.value]});closeModal();alert("Merci, signalement envoyé.");}
+function addFriend(){$("modalBox").innerHTML=`<div class="bigIcon">💌</div><h3>Ajouter un ami</h3><p class="muted">Entre son pseudo. Dans cette démo, une demande apparaît pour tester l'acceptation.</p><input id="friendName" placeholder="Pseudo de l'ami" maxlength="20"><div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="sendFriend">Envoyer la demande ✨</button></div>`;$("modal").style.display="flex";$("sendFriend").onclick=()=>{let f=$("friendName").value.trim();if(!f)return;requests.push(f);closeModal();alert("💌 Demande créée ! Va dans « Demandes d'amis » pour tester Accepter/Refuser.");render()}}
+function acceptRequest(i){let f=requests.splice(i,1)[0];friends.push(f);alert("🎉 ${f} est maintenant ton ami !");render()}
+function refuseRequest(i){requests.splice(i,1);alert("Demande refusée.");render()}
+function createGroup(){
+$("modalBox").innerHTML=`<div class="bigIcon">👥✨</div><h3 style="text-align:center">Créer un groupe</h3>
+<p class="muted" style="text-align:center">Donne un nom à ton nouveau groupe !</p>
+<div class="rule" style="margin-top:12px"><label>🏷️ Nom du groupe</label><br><br>
+<input id="groupName" placeholder="Ex. Les Super Amis ✨" maxlength="24">
+<p class="muted">Un code privé sera créé automatiquement.</p></div>
+<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="makeGroup">✨ Créer mon groupe</button></div>`;
+$("modal").style.display="flex";
+$("makeGroup").onclick=()=>{let n=$("groupName").value.trim();if(!n)return alert("Choisis un nom pour ton groupe 😊");
+let c=Math.random().toString(36).slice(2,8).toUpperCase();groups.push({name:n,code:c});
+$("modalBox").innerHTML=`<div class="bigIcon">🎉</div><h3 style="text-align:center">Groupe créé !</h3>
+<p style="text-align:center">Ton groupe <b>${esc(n)}</b> est prêt.</p>
+<div class="rule profileCard"><div class="badge">🔑 CODE DU GROUPE</div><h2 style="letter-spacing:4px;margin:14px 0">${c}</h2>
+<p class="muted">Partage ce code seulement avec les personnes que tu veux inviter.</p></div>
+<div class="modalBtns"><button class="btn primary" onclick="closeModal();screen='groups';render()">👥 Voir mon groupe</button></div>`;};
+}
+$("rulesBtn").onclick=()=>{screen="rules";render()};
+$("modBtn").onclick=()=>{
+$("modalBox").innerHTML=`<div class="bigIcon">🛡️</div><h3 style="text-align:center">Espace propriétaire</h3>
+<p class="muted" style="text-align:center">Entre ton code propriétaire pour accéder à la modération.</p>
+<div class="rule"><input id="ownerCode" type="password" placeholder="🔐 Code propriétaire" autocomplete="off"></div>
+<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" id="checkOwner">🛡️ Continuer</button></div>`;
+$("modal").style.display="flex";
+$("checkOwner").onclick=()=>{let c=$("ownerCode").value;if(!amichatSocket||!multiplayerReady){alert("Connecte d’abord AmiChat au serveur Render.");return}amichatSocket.emit("ownerLogin",{code:c});};
+};
+function startAmiChat(){
+  loadProfile();
+  const accepted = localStorage.getItem("amichat_rules")==="1";
+  if(!accepted) screen="rules";
+  else if(user && age && +age>=10) screen="home";
+  else screen="login";
+  render();
+  if(user&&age&&+age>=10) setTimeout(()=>{ if(typeof connectMultiplayer==="function") connectMultiplayer(); },0);
+}
+
+/* ===== Correctif : bouton Entrer dans AmiChat ===== */
+document.addEventListener("click", function(e){
+  const enterBtn = e.target.closest("#go");
+  if(!enterBtn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  finishLogin();
+}, true);
+
+
+/* Apply the selected UI language after every screen render. */
+const __renderAmiChat=render;
+render=function(){
+  __renderAmiChat();
+  applyLanguageChrome();
+  if(uiLanguage==="EN") translateVisibleAmiChatText();
+};
+function translateVisibleAmiChatText(){
+  const replacements=[
+    ["⚙️ Paramètres","⚙️ Settings"],["💬 Discussion","💬 Discussion"],["👥 Amis","👥 Friends"],
+    ["👥 Groupes","👥 Groups"],["🎮 Jeux","🎮 Games"],["🟢 En ligne","🟢 Online"],
+    ["Niveau maximum atteint 👑","Maximum level reached 👑"],["Clique pour voir ton niveau","Click to view your level"],
+    ["Bienvenue,","Welcome,"],["Discute, ajoute des amis et crée ton propre groupe.","Chat, add friends and create your own group."],
+    ["Chat public","Public chat"],["Discute avec la communauté","Chat with the community"],["Ajouter un ami","Add a friend"],
+    ["Envoie une demande","Send a request"],["Créer un groupe","Create a group"],["Invite tes amis","Invite your friends"],
+    ["Mini-jeux","Mini games"],["Ton AmiChat ✨","Your AmiChat ✨"],["Demandes d'amis","Friend requests"],
+    ["Mes amis","My friends"],["Mes groupes","My groups"],["Personnaliser mon profil","Customize my profile"],
+    ["en attente","pending"],["UTILISATEURS EN LIGNE","ONLINE USERS"],["GROUPES POPULAIRES","POPULAR GROUPS"],
+    ["Communauté","Community"],["ans •","years old •"],["Serveur Français","French Server"]
+  ];
+  const walker=document.createTreeWalker(document.getElementById("root"),NodeFilter.SHOW_TEXT);
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{let v=n.nodeValue;for(const [a,b] of replacements)v=v.split(a).join(b);n.nodeValue=v;});
+}
+startAmiChat();
+</script>
+<!-- AmiChat v7 multiplayer client -->
+<script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+<script>
+/*
+  AmiChat v7 multiplayer.
+  Change SERVER_URL after deploying server/server.js to an HTTPS host.
+  Do not put passwords or owner secrets here.
+*/
+const SERVER_URL = "https://amischats-8m87.onrender.com";
+let amichatSocket = null;
+let currentRoom = null;
+let multiplayerReady = false;
+
+function connectMultiplayer(){
+  if(amichatSocket || !user || !age || +age < 10) return;
+  try{
+    amichatSocket = io(SERVER_URL, {transports:["websocket","polling"], timeout:5000});
+    amichatSocket.on("connect", ()=>{
+      multiplayerReady = true;
+      amichatSocket.emit("joinServer", {name:user, age:Number(age), language:server});
+      if(currentRoom) amichatSocket.emit("joinRoom", {room:currentRoom, language:server});
+      console.log("AmiChat multiplayer connected");
+    });
+    amichatSocket.on("disconnect", ()=>{multiplayerReady=false;});
+    amichatSocket.on("chatMessage", data=>{
+      if(typeof data?.text==="string" && data.name !== user){
+        const box=document.getElementById("msgs");
+        if(box) localMsg(data.text,false,data.name,!!data.isOwner);
+      }
+    });
+    amichatSocket.on("presence", data=>{
+      window.AmiChatOnlineUsers = data.users || [];
+    });
+    amichatSocket.on("gameInvite", data=>{
+      if(!data || data.game!=="morpion") return;
+      const from=String(data.from||"Un ami").slice(0,20);
+      const ok=confirm(`🎮 ${from} t'invite à jouer au Morpion !\n\nAccepter ?`);
+      if(ok){
+        currentRoom="GAME_"+String(data.room||"PUBLIC").slice(0,40);
+        openChat("🎮 Morpion avec "+from,currentRoom);
+        alert("🎮 Invitation acceptée ! Le Morpion s'ouvre. (La synchronisation complète du plateau peut être ajoutée ensuite.)");
+      }
+    });
+    amichatSocket.on("serverError", data=>console.warn("AmiChat:", data?.message));
+    amichatSocket.on("ownerStatus", data=>{
+      if(data?.ok){ isOwner=true; closeModal(); screen="mod"; render(); alert("👑 Tu es maintenant connecté comme Propriétaire !"); }
+      else { alert(data?.message || "Accès refusé."); const input=$("ownerCode"); if(input){input.value="";input.focus();} }
+    });
+  }catch(e){ console.warn("Multiplayer unavailable",e); }
+}
+
+const localMsg = window.msg;
+window.msg = function(text,mine,who,owner=false){
+  if(mine) addMessageXP();
+  localMsg(text,mine,who,owner || (mine && isOwner));
+  if(mine && amichatSocket && multiplayerReady && currentRoom){
+    amichatSocket.emit("chatMessage",{room:currentRoom,text:String(text).slice(0,300)});
+  }
+};
+
+const localOpenChat = window.openChat;
+window.openChat = function(title, room){
+  currentRoom = room || "PUBLIC";
+  localOpenChat(title, room);
+  connectMultiplayer();
+  if(amichatSocket && multiplayerReady){
+    amichatSocket.emit("joinRoom",{room:currentRoom,language:server});
+  }
+};
+
+function joinMultiplayerServer(){
+  connectMultiplayer();
+  if(amichatSocket && multiplayerReady){
+    amichatSocket.emit("joinServer",{name:user,age:Number(age),language:server});
+  }
+}
+
+/* CrazyGames preference: disable chat when the platform asks for it. */
+function applyCrazyGamesSettings(settings){
+  if(settings && settings.disableChat === true){
+    if(document.getElementById("text")) document.getElementById("text").disabled=true;
+  }
+}
+window.addEventListener("load",()=>{
+  try{
+    if(window.CrazyGames?.SDK?.game?.addSettingsChangeListener){
+      window.CrazyGames.SDK.game.addSettingsChangeListener(applyCrazyGamesSettings);
+    }
+  }catch(e){}
+});
+</script>
+
+<!-- CrazyGames SDK: chargé après l'interface pour éviter une page vide -->
+<script>
+(function(){
+  const s=document.createElement("script");
+  s.src="https://sdk.crazygames.com/crazygames-sdk-v3.js";
+  s.async=true;
+  s.onload=async()=>{
+    try{
+      if(window.CrazyGames?.SDK?.init) await window.CrazyGames.SDK.init();
+    }catch(e){ console.log("CrazyGames SDK unavailable outside CrazyGames preview."); }
+  };
+  s.onerror=()=>console.log("CrazyGames SDK could not load; AmiChat still works.");
+  document.head.appendChild(s);
+})();
+</script>
+<script>
+window.addEventListener("error",()=>{
+  const root=document.getElementById("root");
+  if(root && !root.innerHTML.trim()){
+    root.innerHTML='<div class="welcome"><div class="bigIcon">💬</div><h2>AmiChat</h2><p>Clique sur « 📜 Règles » pour continuer.</p></div>';
+  }
+});
+</script>
+
+<script>
+/* Petit son uniquement pour les clics normaux de l'interface */
+(function(){
+  let soundEnabled=true;
+  document.addEventListener("click",function(e){
+    if(!soundEnabled) return;
+    const el=e.target.closest("button");
+    if(!el || el.disabled) return;
+    try{
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(!Ctx) return;
+      const ctx=window.__amiChatAudio||(window.__amiChatAudio=new Ctx());
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type="sine"; o.frequency.value=520;
+      g.gain.setValueAtTime(0.035,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.07);
+      o.connect(g);g.connect(ctx.destination);
+      o.start();o.stop(ctx.currentTime+0.07);
+    }catch(err){}
+  });
+})();
+</script>
+
+</body></html>
