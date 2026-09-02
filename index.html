@@ -362,7 +362,7 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
     </div></div>`;
   $("langFR").onclick=()=>{uiLanguage="FR";saveProfile();showSavedToast("🇫🇷 Langue changée","L'interface est maintenant en français.");render()};
   $("langEN").onclick=()=>{uiLanguage="EN";saveProfile();showSavedToast("🇬🇧 Language changed","The interface is now in English.");render()};
-  $("saveProfile").onclick=()=>{let n=$("setName").value.trim(),a=$("setAge").value;if(!n)return alert(uiLanguage==="EN"?"Choose a username.":"Choisis un pseudo.");if(!a||+a<10){showAgeWarning();return;}user=n;age=a;saveProfile();showSavedToast(uiLanguage==="EN"?"Profile saved! 🎉":"Profil enregistré ! 🎉",uiLanguage==="EN"?"Your changes have been saved successfully.":"Tes modifications ont été sauvegardées avec succès.");render()};
+  $("saveProfile").onclick=()=>{let n=$("setName").value.trim(),a=$("setAge").value;if(!n)return alert(uiLanguage==="EN"?"Choose a username.":"Choisis un pseudo.");if(!a||+a<10){showAgeWarning();return;}const oldName=user;user=n;age=a;saveProfile();if(amichatSocket&&multiplayerReady&&oldName!==user)amichatSocket.emit("updateProfile",{name:user});showSavedToast(uiLanguage==="EN"?"Profile saved! 🎉":"Profil enregistré ! 🎉",uiLanguage==="EN"?"Your changes have been saved successfully.":"Tes modifications ont été sauvegardées avec succès.");render()};
   $("saveServer").onclick=()=>{server=$("setServer").value;saveProfile();showSavedToast(uiLanguage==="EN"?"Community saved ✨":"Communauté enregistrée ✨",uiLanguage==="EN"?"Your community has been updated.":"Ta communauté a été mise à jour.");screen="home";render()};return}
  if(screen==="friends"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>`<div class="item"><span>🟢 ${esc(f)}</span><button class="btn primary" onclick="openFriendChat('${esc(f)}')">Parler</button></div>`).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;return}
  if(screen==="requests"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>💌 Demandes d'amis</h2><p class="muted">Accepte ou refuse les demandes.</p><div class="list">${requests.length?requests.map((f,i)=>`<div class="item"><span>💌 <b>${esc(f)}</b> veut devenir ton ami</span><div class="itemActions"><button class="btn primary" onclick="acceptRequest(${i})">❤️ Accepter</button><button class="btn" onclick="refuseRequest(${i})">✖ Refuser</button></div></div>`).join(""):'<div class="item">Aucune demande en attente.</div>'}</div></div>`;return}
@@ -834,7 +834,7 @@ function connectMultiplayer(){
       if(h.length>200)h.shift();
       chatHistoryByRoom.set(room,h);
       saveMessageCache(room);
-      if(room===currentRoom && data.name !== user){
+      if(room===currentRoom && String(data.name||"").trim().toLowerCase() !== String(user||"").trim().toLowerCase()){
         const box=document.getElementById("msgs");
         if(box) localMsg(data.text,false,data.name,!!data.isOwner);
       }
@@ -866,6 +866,9 @@ function connectMultiplayer(){
       requests=mergeUnique(cachedRequests,newRequests);
       saveSocialCache();
       render();
+    });
+    amichatSocket.on("profileUpdated", data=>{
+      if(data?.name) { user=String(data.name).trim(); saveProfile(); }
     });
     amichatSocket.on("friendRequest", data=>{
       const from=String(data?.from||"").trim(); if(!from)return;

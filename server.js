@@ -49,6 +49,27 @@ function sendState(socket){
 }
 function friendRoom(a,b){ return "FRIEND_"+[key(a),key(b)].sort().join("_").slice(0,80); }
 
+
+function renamePersistentUser(oldName,newName,socket){
+  const oldKey=key(oldName), newKey=key(newName);
+  if(!oldKey || !newKey || oldKey===newKey) return true;
+  const existing=usersByName.get(newKey);
+  if(existing && existing!==socket.id){ socket.emit("serverError",{message:"Ce pseudo est déjà utilisé."}); return false; }
+  const oldRequests=requestsByUser.get(oldKey);
+  const oldFriends=friendsByUser.get(oldKey);
+  if(oldRequests){ requestsByUser.delete(oldKey); requestsByUser.set(newKey,new Set(oldRequests)); }
+  if(oldFriends){ friendsByUser.delete(oldKey); friendsByUser.set(newKey,new Set(oldFriends)); }
+  for(const set of requestsByUser.values()) if(set.has(oldKey)){ set.delete(oldKey); set.add(newKey); }
+  for(const set of friendsByUser.values()) if(set.has(oldKey)){ set.delete(oldKey); set.add(newKey); }
+  for(const history of messagesByRoom.values()) for(const msg of history) if(key(msg.name)===oldKey) msg.name=newName;
+  if(usersByName.get(oldKey)===socket.id) usersByName.delete(oldKey);
+  usersByName.set(newKey,socket.id);
+  socket.data.name=newName;
+  savePersistentState();
+  io.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
+  return true;
+}
+
 app.get("/", (_req,res) => res.sendFile(path.join(__dirname,"index.html")));
 app.get("/health", (_req,res) => res.json({ok:true,service:"AmiChat"}));
 
@@ -68,6 +89,13 @@ io.on("connection", socket => {
     socket.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
     sendState(socket);
     socket.emit("serverReady",{name});
+  });
+
+  socket.on("updateProfile", data=>{
+    const newName=String(data?.name||socket.data.name||"").trim().slice(0,20);
+    if(!newName) return;
+    renamePersistentUser(socket.data.name,newName,socket);
+    socket.emit("profileUpdated",{name:socket.data.name});
   });
 
   socket.on("ownerLogin", data=>{
@@ -94,7 +122,7 @@ io.on("connection", socket => {
       messagesByRoom.set(room,history);
       savePersistentState();
     }
-    io.to(room).emit("chatMessage",{...message,room});
+    socket.to(room).emit("chatMessage",{...message,room});
   });
 
   socket.on("friendRequest", data=>{
