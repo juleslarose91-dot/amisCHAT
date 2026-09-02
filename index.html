@@ -665,7 +665,12 @@ function addMessageXP(){
   saveProfile();
 }
 function openChat(t,c){chatTitle=t;screen="chat";render()}
-function seed(){let m=$("msgs");m.innerHTML="";msg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat")}
+function seed(){
+  let m=$("msgs");m.innerHTML="";
+  const history=chatHistoryByRoom.get(currentRoom)||[];
+  if(history.length){history.forEach(x=>msg(x.text,x.name===user,x.name,!!x.isOwner));}
+  else if(currentRoom==="PUBLIC") msg(server==="FR"?"Bienvenue dans le chat français ! 🎉":"Welcome to the English chat! 🎉",false,"AmiChat");
+}
 function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b)}$("msgs").appendChild(e)}
 function openReport(u,t){$("modalBox").innerHTML=`<h3>🚩 Signaler ${esc(u)}</h3>${reasons.map((x,i)=>`<label style="display:block;padding:8px;background:#ffffff08;margin:5px 0;border-radius:10px"><input type="radio" name="reason" value="${i}"> ${x}</label>`).join("")}<div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReport('${esc(u)}','${esc(t)}')">Envoyer</button></div>`;$("modal").style.display="flex"}
 function sendReport(u,t){let v=document.querySelector('input[name=reason]:checked');if(!v)return alert("Choisis une raison.");reports.push({user:u,text:t,reason:reasons[v.value]});closeModal();alert("Merci, signalement envoyé.");}
@@ -770,6 +775,7 @@ const SERVER_URL = "https://amischat.onrender.com"
 let amichatSocket = null;
 let currentRoom = null;
 let multiplayerReady = false;
+const chatHistoryByRoom = new Map();
 
 function openFriendChat(friend){
   const f=String(friend||"").trim(); if(!f)return;
@@ -791,9 +797,21 @@ function connectMultiplayer(){
     });
     amichatSocket.on("disconnect", ()=>{multiplayerReady=false;});
     amichatSocket.on("chatMessage", data=>{
-      if(typeof data?.text==="string" && data.name !== user){
+      if(typeof data?.text!=="string") return;
+      const room=currentRoom;
+      if(room){const h=chatHistoryByRoom.get(room)||[]; h.push({text:data.text,name:data.name,isOwner:!!data.isOwner}); if(h.length>200)h.shift(); chatHistoryByRoom.set(room,h);}
+      if(data.name !== user){
         const box=document.getElementById("msgs");
         if(box) localMsg(data.text,false,data.name,!!data.isOwner);
+      }
+    });
+    amichatSocket.on("chatHistory", data=>{
+      const room=String(data?.room||"PUBLIC");
+      const history=Array.isArray(data?.messages)?data.messages:[];
+      chatHistoryByRoom.set(room,history);
+      if(room===currentRoom && document.getElementById("msgs")){
+        const box=document.getElementById("msgs"); box.innerHTML="";
+        history.forEach(x=>localMsg(x.text,x.name===user,x.name,!!x.isOwner));
       }
     });
     amichatSocket.on("presence", data=>{

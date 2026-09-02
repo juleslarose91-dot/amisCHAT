@@ -11,6 +11,7 @@ const OWNER_CODE = process.env.OWNER_CODE || "";
 const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
+const messagesByRoom = new Map();
 
 function key(name){ return String(name || "").trim().toLowerCase(); }
 function displayName(name){ const id=key(name); const sock=usersByName.get(id); return sock?.data?.name || String(name||"").trim().slice(0,20); }
@@ -52,12 +53,20 @@ io.on("connection", socket => {
     else socket.emit("ownerStatus",{ok:false,message:"Accès refusé."});
   });
 
-  socket.on("joinRoom", data=>{ const room=String(data.room||"PUBLIC").slice(0,80); socket.join(room); });
+  socket.on("joinRoom", data=>{
+    const room=String(data.room||"PUBLIC").slice(0,80);
+    socket.join(room);
+    socket.emit("chatHistory", {room, messages:[...(messagesByRoom.get(room)||[])]});
+  });
 
   socket.on("chatMessage", data=>{
     const room=String(data.room||"PUBLIC").slice(0,80);
     const text=String(data.text||"").trim().slice(0,300); if(!text)return;
-    io.to(room).emit("chatMessage",{text,name:socket.data.name,isOwner:socket.data.isOwner});
+    const message={text,name:socket.data.name,isOwner:socket.data.isOwner};
+    const history=messagesByRoom.get(room)||[]; history.push(message);
+    if(history.length>200) history.shift();
+    messagesByRoom.set(room,history);
+    io.to(room).emit("chatMessage",message);
   });
 
   socket.on("friendRequest", data=>{
