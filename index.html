@@ -837,7 +837,10 @@ function connectMultiplayer(){
     });
     amichatSocket.on("chatHistory", data=>{
       const room=String(data?.room||"PUBLIC");
-      const history=Array.isArray(data?.messages)?data.messages:[];
+      const serverHistory=Array.isArray(data?.messages)?data.messages:[];
+      const cachedHistory=loadMessageCache(room);
+      /* Ne jamais effacer les messages sauvegardés si le serveur renvoie un historique vide. */
+      const history=serverHistory.length ? serverHistory : cachedHistory;
       chatHistoryByRoom.set(room,history);
       saveMessageCache(room);
       if(room===currentRoom && document.getElementById("msgs")){
@@ -851,10 +854,12 @@ function connectMultiplayer(){
     amichatSocket.on("socialState", data=>{
       const newRequests=Array.isArray(data?.requests)?data.requests:[];
       const newFriends=Array.isArray(data?.friends)?data.friends:[];
-      /* Le cache évite que les amis disparaissent si le serveur répond vide après une actualisation. */
-      if(newRequests.length || newFriends.length || (!requests.length && !friends.length)){
-        requests=newRequests; friends=newFriends;
-      }
+      const cachedFriends=Array.isArray(friends)?friends:[];
+      const cachedRequests=Array.isArray(requests)?requests:[];
+      /* Correctif : une réponse vide du serveur ne doit JAMAIS supprimer les amis déjà sauvegardés. */
+      const mergeUnique=(a,b)=>[...new Map([...(a||[]),...(b||[])].map(x=>[String(x).trim().toLowerCase(),String(x).trim()])).values()];
+      friends=mergeUnique(cachedFriends,newFriends);
+      requests=mergeUnique(cachedRequests,newRequests);
       saveSocialCache();
       render();
     });
