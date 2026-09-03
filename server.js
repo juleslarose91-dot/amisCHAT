@@ -13,7 +13,6 @@ const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
 const messagesByRoom = new Map();
-const gameSessions = new Map();
 const fs = require("fs");
 const DATA_FILE = path.join(__dirname, "amichat-data.json");
 
@@ -94,8 +93,6 @@ io.on("connection", socket => {
     const old=usersByName.get(k);
     if(old && old!==socket.id) io.to(old).emit("serverError",{message:"Cette session a été remplacée par une nouvelle connexion."});
     socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR";
-    // Le chat public est toujours rejoint après la connexion : cela évite qu'il cesse de fonctionner après une partie ou une actualisation.
-    socket.join("PUBLIC");
     usersByName.set(k,socket.id);
     getSet(requestsByUser,k); getSet(friendsByUser,k);
     broadcastPresence();
@@ -176,7 +173,7 @@ io.on("connection", socket => {
   socket.on("gameInvite", data=>{
     const to=String(data.to||"").trim().slice(0,20), game=String(data.game||""); if(!to||!game)return;
     const targetId=usersByName.get(key(to)); if(!targetId){socket.emit("serverError",{message:"Cet ami n'est pas connecté actuellement."});return;}
-    io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room:`GAME_${socket.id}_${targetId}`});
+    const room=`GAME_${socket.id}_${targetId}`; gameInvites.set(`${key(socket.data.name)}|${key(to)}|${game}`,room); io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room});
   });
 
   socket.on("gameInviteResponse", data=>{
@@ -184,25 +181,12 @@ io.on("connection", socket => {
     const game=String(data?.game||"");
     if(!to||!game)return;
     const targetId=usersByName.get(key(to));
-    if(!targetId) return;
-    if(data?.accepted){
-      const room="GAME_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);
-      gameSessions.set(room,{game,players:[socket.id,targetId]});
-      socket.join(room);
-      const targetSocket=io.sockets.sockets.get(targetId); if(targetSocket) targetSocket.join(room);
-      const payload={from:socket.data.name,to:displayName(to),game,room};
-      socket.emit("gameStart",payload);
-      io.to(targetId).emit("gameStart",payload);
-    }else{
-      io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted:false});
-    }
+    const accepted=!!data?.accepted; const room=gameInvites.get(`${key(to)}|${key(socket.data.name)}|${game}`)||""; if(accepted&&room){socket.join(room); const other=io.sockets.sockets.get(targetId); if(other) other.join(room);} if(targetId) io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted,room}); socket.emit("gameInviteResponse",{from:to,game,accepted,room,me:true});
   });
 
   socket.on("gameAction", data=>{
-    const room=String(data?.room||"");
-    const session=gameSessions.get(room);
-    if(!session || !session.players.includes(socket.id)) return;
-    socket.to(room).emit("gameAction",{...data,from:socket.data.name});
+    const room=String(data?.room||""); if(!room.startsWith("GAME_")) return;
+    socket.to(room).emit("gameAction",{game:String(data?.game||""),type:String(data?.type||""),value:data?.value,from:socket.data.name});
   });
 
   socket.on("disconnect",()=>{
