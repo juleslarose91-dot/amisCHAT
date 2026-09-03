@@ -94,6 +94,8 @@ io.on("connection", socket => {
     const old=usersByName.get(k);
     if(old && old!==socket.id) io.to(old).emit("serverError",{message:"Cette session a été remplacée par une nouvelle connexion."});
     socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR";
+    // Le chat public est toujours rejoint après la connexion : cela évite qu'il cesse de fonctionner après une partie ou une actualisation.
+    socket.join("PUBLIC");
     usersByName.set(k,socket.id);
     getSet(requestsByUser,k); getSet(friendsByUser,k);
     broadcastPresence();
