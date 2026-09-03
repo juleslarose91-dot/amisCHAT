@@ -146,6 +146,15 @@ header{position:relative}
 .profileSuccess h3{font-size:28px;margin:0 0 7px}.profileSuccess p{margin:0 auto;color:#d8d6ec;max-width:390px}.successStars{font-size:23px;letter-spacing:6px;margin:4px 0 12px;animation:successFloat 1.6s ease-in-out infinite alternate}.profileSuccessBtn{width:100%;margin-top:18px;border:0;border-radius:16px;padding:14px;color:#fff;font-weight:900;font-size:16px;cursor:pointer;background:linear-gradient(90deg,#7c3aed,#a855f7,#06b6d4);box-shadow:0 14px 32px #7c3aed45}
 @keyframes successPop{from{transform:scale(.45) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes successFloat{from{transform:translateY(-2px)}to{transform:translateY(3px)}}
 @media(max-width:760px){.loginHero h2{font-size:27px}.loginIdentityCard{gap:11px;padding:14px}.loginIdentityCard .avatar{width:76px;height:76px;flex-basis:76px}.loginIdentityCard h3{font-size:19px}.loginEnter{min-width:0;width:100%}}
+
+.mpTurn{margin:14px 0;padding:13px 15px;border-radius:15px;text-align:center;font-size:16px;border:1px solid #ffffff18}
+.mpTurn.myTurn{background:linear-gradient(90deg,#7c3aed55,#06b6d455);box-shadow:0 8px 25px #7c3aed22}
+.mpTurn.friendTurn{background:#ffffff0b;color:#d8d4ee}
+.mpBoard{width:min(330px,100%);margin:18px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.mpCell{aspect-ratio:1;border-radius:16px;border:1px solid #ffffff1f;background:#ffffff10;color:#fff;font-size:42px;font-weight:900;cursor:pointer;transition:.2s}
+.mpCell:not(:disabled):hover{transform:translateY(-2px);background:#ffffff18}
+.mpCell:disabled{cursor:not-allowed;opacity:.8}
+.mpCell.filled{background:#ffffff14}
 </style></head>
 <body><div class="app"><main class="card">
 <header><div class="topHeart" aria-label="AmiChat">❤️</div><div class="brand"><div class="logo">💬</div><div><div class="title">AmiChat</div><div class="sub"><span id="headerSub">Parle avec tes amis • 10+</span></div></div></div>
@@ -396,8 +405,34 @@ function renderSelectedGameSolo(r){
  if(selectedGame==='guess'){guessNumber=Math.floor(Math.random()*20)+1;guessTries=0;r.innerHTML=gameShell('Devine le nombre','🔢',`<div class="rule"><p>Le bot a choisi un nombre entre <b>1 et 20</b>.</p><input id="guessInput" class="guessInput" type="number" min="1" max="20" placeholder="Ton nombre"><button class="btn primary" onclick="checkGuess()">Deviner 🎯</button><div id="guessResult" class="gameResult"></div><small class="muted">Essaie autant de fois que tu veux.</small><div class="gameActions"><button class="btn primary" onclick="openGame('guess')">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);return}
 }
 let multiplayerGame=null;
-function mpSend(type,value){if(multiplayerGame&&amichatSocket)amichatSocket.emit("gameAction",{room:multiplayerGame.room,game:multiplayerGame.game,type,value});}
-function mpPlay(value){const out=$("mpResult");if(out)out.textContent=`Toi : ${value} — envoyé à ${multiplayerGame.friend} 🤝`;mpSend("play",value);}
+let mpMyTurn=true;
+let mpMorpionBoard=Array(9).fill("");
+let mpRole="X";
+
+function mpStatus(){
+  if(!multiplayerGame) return "";
+  return mpMyTurn
+    ? `✨ <b>C’est ton tour</b> — à toi de jouer !`
+    : `⏳ <b>C’est au tour de ${esc(multiplayerGame.friend)}</b> — attends son coup.`;
+}
+function mpSend(type,value){
+  if(multiplayerGame&&amichatSocket) amichatSocket.emit("gameAction",{room:multiplayerGame.room,game:multiplayerGame.game,type,value});
+}
+function mpFinishTurn(type,value){
+  if(!multiplayerGame||!mpMyTurn) return;
+  mpMyTurn=false;
+  mpSend(type,value);
+  render();
+}
+function mpPlay(value){ mpFinishTurn("play",value); }
+
+function mpMorpionPlay(index){
+  if(!multiplayerGame||!mpMyTurn||mpMorpionBoard[index]) return;
+  mpMorpionBoard[index]=mpRole;
+  mpMyTurn=false;
+  mpSend("morpionMove",{index,symbol:mpRole});
+  render();
+}
 function renderSelectedGame(r){
  if(multiplayerGame&&multiplayerGame.pending&&multiplayerGame.game===selectedGame){
   const names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
@@ -405,12 +440,20 @@ function renderSelectedGame(r){
  }
  if(multiplayerGame&&multiplayerGame.active&&multiplayerGame.game===selectedGame){
   const names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
+  const disabled=mpMyTurn?"":"disabled";
   let body='';
-  if(selectedGame==='rps') body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" onclick="mpPlay('🪨')">🪨</button><button class="btn" onclick="mpPlay('📄')">📄</button><button class="btn" onclick="mpPlay('✂️')">✂️</button></div>`;
-  else if(selectedGame==='morpion') body=`<div id="mpResult" class="gameResult">Partie avec ${esc(multiplayerGame.friend)} 🤝 — jouez chacun votre tour.</div><div class="gameActions"><button class="btn" onclick="mpPlay('❌ Joue')">❌ Jouer</button><button class="btn" onclick="mpPlay('⭕ Joue')">⭕ Jouer</button></div>`;
-  else if(selectedGame==='quiz') body=`<p>Répondez chacun à tour de rôle au Quiz.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Réponse envoyée')">🧠 Répondre</button></div>`;
-  else if(selectedGame==='memory') body=`<p>Jouez ensemble et annoncez vos paires.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Une paire')">🃏 J'ai trouvé une paire</button></div>`;
-  else body=`<p>Choisissez un nombre à tour de rôle.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Mon tour')">🔢 Jouer mon tour</button></div>`;
+  if(selectedGame==='morpion'){
+    const cells=mpMorpionBoard.map((v,i)=>`<button class="mpCell ${v?'filled':''}" onclick="mpMorpionPlay(${i})" ${(!mpMyTurn||v)?'disabled':''}>${v||''}</button>`).join("");
+    body=`<div class="mpTurn ${mpMyTurn?'myTurn':'friendTurn'}">${mpStatus()}</div><div class="mpBoard">${cells}</div>`;
+  } else if(selectedGame==='rps'){
+    body=`<div class="mpTurn ${mpMyTurn?'myTurn':'friendTurn'}">${mpStatus()}</div><p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" onclick="mpPlay('🪨')" ${disabled}>🪨</button><button class="btn" onclick="mpPlay('📄')" ${disabled}>📄</button><button class="btn" onclick="mpPlay('✂️')" ${disabled}>✂️</button></div>`;
+  } else if(selectedGame==='quiz'){
+    body=`<div class="mpTurn ${mpMyTurn?'myTurn':'friendTurn'}">${mpStatus()}</div><p>Répondez chacun à tour de rôle au Quiz.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Réponse envoyée')" ${disabled}>🧠 Répondre</button></div>`;
+  } else if(selectedGame==='memory'){
+    body=`<div class="mpTurn ${mpMyTurn?'myTurn':'friendTurn'}">${mpStatus()}</div><p>Jouez chacun votre tour.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Une paire')" ${disabled}>🃏 J'ai trouvé une paire</button></div>`;
+  } else {
+    body=`<div class="mpTurn ${mpMyTurn?'myTurn':'friendTurn'}">${mpStatus()}</div><p>Choisissez un nombre à tour de rôle.</p><div class="gameActions"><button class="btn primary" onclick="mpPlay('Mon tour')" ${disabled}>🔢 Jouer mon tour</button></div>`;
+  }
   r.innerHTML=gameShell(names[selectedGame]||'Mini-jeu','🎮',`<div class="rule"><div class="gameHint">🤝 Tu joues avec <b>${esc(multiplayerGame.friend)}</b> — aucun bot.</div>${body}<div id="mpResult" class="gameResult"></div></div>`);return;
  }
  renderSelectedGameSolo(r);
@@ -980,6 +1023,7 @@ function connectMultiplayer(){
       $("gameInviteAccept").onclick=()=>{
         if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameInviteResponse",{to:from,game,accepted:true,room});
         multiplayerGame={game,friend:from,room,active:true,pending:false};
+        mpRole="O"; mpMyTurn=false; mpMorpionBoard=Array(9).fill("");
         closeModal();
         selectedGame=game; screen="game"; render();
         showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`Tu joues maintenant à ${gameName} avec ${from} 🤝`);
@@ -995,6 +1039,10 @@ function connectMultiplayer(){
       const gameName=gameNames[String(data?.game||"")]||"le jeu";
       if(data?.accepted){
         multiplayerGame={game:String(data?.game||""),friend:from,room:String(data?.room||""),active:true,pending:false};
+        /* L'invitant commence (X), la personne qui accepte joue ensuite (O). */
+        mpRole=data?.me?"O":"X";
+        mpMyTurn=!data?.me;
+        mpMorpionBoard=Array(9).fill("");
         showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`${from} a accepté ton invitation pour ${gameName} 🤝`);
         if(screen==="game" && selectedGame===multiplayerGame.game) render();
       } else {
@@ -1005,8 +1053,15 @@ function connectMultiplayer(){
     });
     amichatSocket.on("gameAction", data=>{
       if(!multiplayerGame||!data) return;
-      const out=$("mpResult");
-      if(out) out.textContent=`${data.from||"Ton ami"} : ${data.value||data.type} 🤝`;
+      if(String(data.game||"")!==String(multiplayerGame.game||"")) return;
+      if(data.type==="morpionMove"){
+        const i=Number(data.value?.index ?? data.value);
+        const symbol=String(data.value?.symbol||"");
+        if(Number.isInteger(i)&&i>=0&&i<9&&symbol) mpMorpionBoard[i]=symbol;
+      }
+      /* Dès que l'ami a joué, c'est automatiquement ton tour. */
+      mpMyTurn=true;
+      if(screen==="game" && selectedGame===multiplayerGame.game) render();
     });
     amichatSocket.on("serverError", data=>{
       console.warn("AmiChat:", data?.message);
@@ -1158,8 +1213,19 @@ function renderSelectedGame(r){
   const s=mpInit(), names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
   let body='';
   if(selectedGame==='morpion'){
-   const win=morpionWinner(s.board), turnText=win==="draw"?"🤝 Match nul":win?`🎉 ${win} a gagné !`:s.turn===mpRole()?"👉 C'est ton tour":"⏳ Tour de ton ami";
-   body=`<div id="gameStatus" class="gameStatus">${turnText} — Tu joues avec ${mpRole()}</div><div class="gameBoard">${s.board.map((v,i)=>`<button class="cell" onclick="mpMorpionMove(${i})">${v}</button>`).join("")}</div>`;
+   const win=morpionWinner(s.board);
+   const myTurn=!win&&s.turn===mpRole();
+   const winnerText=win==="draw"
+     ?"🤝 Match nul !"
+     :win
+       ?(win===mpRole()?"🎉 Tu as gagné !":"🎉 Ton ami a gagné !")
+       :"";
+   const turnText=winnerText||(myTurn
+     ?"✨ C'est ton tour — à toi de jouer !"
+     :"⏳ C'est au tour de ton ami");
+   body=`<div class="gameHint">❌⭕ Partie avec <b>${esc(multiplayerGame.friend)}</b> • Tu joues avec <b>${mpRole()}</b></div>
+     <div id="gameStatus" class="gameStatus">${turnText}</div>
+     <div class="gameBoard">${s.board.map((v,i)=>`<button class="gameCell" ${(!myTurn||v||win)?'disabled':''} onclick="mpMorpionMove(${i})">${v}</button>`).join("")}</div>`;
   }else if(selectedGame==='rps'){
    const mine=s.rps[mpRole()]||"?", other=s.rps[mpRole()==="X"?"O":"X"]||"?";
    body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" onclick="mpRps('🪨')">🪨</button><button class="btn" onclick="mpRps('📄')">📄</button><button class="btn" onclick="mpRps('✂️')">✂️</button></div><div class="gameResult">Toi : ${mine} • Ton ami : ${other}</div>`;
