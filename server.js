@@ -13,6 +13,9 @@ const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
 const messagesByRoom = new Map();
+const reports = [];
+const mutedUsers = new Set();
+const bannedUsers = new Set();
 // Invitations de mini-jeux en attente (pour transmettre la même partie aux deux amis).
 const gameInvites = new Map();
 const fs = require("fs");
@@ -25,11 +28,14 @@ function loadPersistentState(){
     for(const [k,v] of Object.entries(data.requests||{})) requestsByUser.set(k,new Set(v));
     for(const [k,v] of Object.entries(data.friends||{})) friendsByUser.set(k,new Set(v));
     for(const [k,v] of Object.entries(data.messages||{})) if(k!=="PUBLIC") messagesByRoom.set(k,Array.isArray(v)?v:[]);
+    for(const x of (data.reports||[])) reports.push(x);
+    for(const x of (data.muted||[])) mutedUsers.add(key(x));
+    for(const x of (data.banned||[])) bannedUsers.add(key(x));
   }catch(e){ console.warn("Could not load AmiChat data:",e.message); }
 }
 function savePersistentState(){
   try{
-    const obj={requests:{},friends:{},messages:{}};
+    const obj={requests:{},friends:{},messages:{},reports:[...reports],muted:[...mutedUsers],banned:[...bannedUsers]};
     for(const [k,v] of requestsByUser) obj.requests[k]=[...v];
     for(const [k,v] of friendsByUser) obj.friends[k]=[...v];
     for(const [k,v] of messagesByRoom) if(k!=="PUBLIC") obj.messages[k]=v;
@@ -92,6 +98,7 @@ io.on("connection", socket => {
     const age=Number(data.age);
     if(!Number.isFinite(age)||age<10){ socket.emit("serverError",{message:"AmiChat est réservé aux personnes de 10 ans et plus."}); return; }
     const k=key(name);
+    if(bannedUsers.has(k)){ socket.emit("moderationStatus",{type:"banned",name}); return; }
     const old=usersByName.get(k);
     if(old && old!==socket.id) io.to(old).emit("serverError",{message:"Cette session a été remplacée par une nouvelle connexion."});
     socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR";
@@ -100,6 +107,7 @@ io.on("connection", socket => {
     broadcastPresence();
     sendState(socket);
     socket.emit("serverReady",{name});
+    if(mutedUsers.has(k)) socket.emit("moderationStatus",{type:"muted",name});
   });
 
   socket.on("updateProfile", data=>{
@@ -125,6 +133,7 @@ io.on("connection", socket => {
   socket.on("chatMessage", data=>{
     const room=String(data.room||"PUBLIC").slice(0,80);
     const text=String(data.text||"").trim().slice(0,300); if(!text)return;
+    if(mutedUsers.has(key(socket.data.name))){ socket.emit("moderationStatus",{type:"muted",name:socket.data.name}); return; }
     const message={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),text,name:socket.data.name,isOwner:socket.data.isOwner};
     /* Le chat public est temporaire : il n'est jamais gardé dans l'historique. */
     if(room!=="PUBLIC"){
@@ -170,6 +179,34 @@ io.on("connection", socket => {
     sendState(socket);
     const otherId=usersByName.get(from), other=otherId&&io.sockets.sockets.get(otherId);
     if(other) other.emit("friendRefused",{from:socket.data.name});
+  });
+
+  socket.on("reportUser", data=>{
+    const target=String(data?.user||"").trim().slice(0,20);
+    const text=String(data?.text||"").slice(0,300);
+    const reason=String(data?.reason||"").slice(0,80);
+    if(!target || !reason) return;
+    const report={id:Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7),user:target,text,reason,from:socket.data.name,at:Date.now()};
+    reports.push(report);
+    if(reports.length>300) reports.shift();
+    savePersistentState();
+    for(const sock of io.sockets.sockets.values()) if(sock.data?.isOwner) sock.emit("moderationReports",{reports});
+    socket.emit("reportSent",{report});
+  });
+
+  socket.on("getModerationReports", ()=>{
+    if(socket.data.isOwner) socket.emit("moderationReports",{reports});
+  });
+
+  socket.on("moderationAction", data=>{
+    if(!socket.data.isOwner){ socket.emit("serverError",{message:"Accès propriétaire requis."}); return; }
+    const target=String(data?.user||"").trim().slice(0,20), action=String(data?.action||"");
+    const k=key(target); if(!k || !["mute","ban","unban"].includes(action)) return;
+    if(action==="mute"){ mutedUsers.add(k); }
+    if(action==="ban"){ bannedUsers.add(k); mutedUsers.delete(k); const id=usersByName.get(k); if(id){ const targetSocket=io.sockets.sockets.get(id); if(targetSocket) targetSocket.emit("moderationStatus",{type:"banned",name:target}); } }
+    if(action==="unban"){ bannedUsers.delete(k); mutedUsers.delete(k); }
+    savePersistentState();
+    socket.emit("moderationActionResult",{action,user:target});
   });
 
   socket.on("gameInvite", data=>{
