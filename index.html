@@ -155,6 +155,17 @@ header{position:relative}
 .mpCell:not(:disabled):hover{transform:translateY(-2px);background:#ffffff18}
 .mpCell:disabled{cursor:not-allowed;opacity:.8}
 .mpCell.filled{background:#ffffff14}
+
+/* ===== Signalement : fenêtre corrigée ===== */
+.reportModal{width:min(620px,100%);padding:0;overflow:hidden;background:linear-gradient(145deg,#211b3d,#15172d);border:1px solid #a78bfa55;box-shadow:0 28px 90px #000b,0 0 45px #7c3aed22}
+.reportModalHead{padding:24px 24px 18px;text-align:center;background:linear-gradient(135deg,#7c3aed22,#06b6d422);border-bottom:1px solid #ffffff12}
+.reportModalHead .bigIcon{font-size:52px;line-height:1;margin-bottom:8px}.reportModalHead h2{margin:0;font-size:25px}.reportModalHead p{margin:7px 0 0;color:#cbd5e1}
+.reportChoices{padding:16px 18px 4px;display:grid;gap:9px;max-height:min(52vh,480px);overflow:auto}
+.reportReasonBtn{width:100%;display:flex;align-items:center;gap:12px;padding:14px 15px;border-radius:16px;border:1px solid #ffffff14;background:#ffffff08;color:#fff;cursor:pointer;text-align:left;font-weight:800;font-size:15px;transition:.18s}
+.reportReasonBtn:hover{transform:translateY(-1px);background:#ffffff12;border-color:#a78bfa66}.reportReasonBtn.selected{background:linear-gradient(90deg,#7c3aed55,#06b6d433);border-color:#22d3eeaa;box-shadow:0 8px 24px #7c3aed22}.reportReasonCheck{width:23px;height:23px;min-width:23px;border-radius:50%;border:2px solid #c4b5fd;display:grid;place-items:center;color:transparent}.reportReasonBtn.selected .reportReasonCheck{border-color:#22d3ee;background:#22d3ee;color:#07111d}.reportReasonText{flex:1}.reportModal .modalBtns{padding:14px 18px 20px;margin:0;border-top:1px solid #ffffff10}.reportSendBtn{min-width:150px}
+/* Empêche la règle globale input{width:100%} de casser les choix de signalement. */
+.reportReason input[type=radio]{width:auto!important;flex:0 0 auto}
+
 </style></head>
 <body><div class="app"><main class="card">
 <header><div class="topHeart" aria-label="AmiChat">❤️</div><div class="brand"><div class="logo">💬</div><div><div class="title">AmiChat</div><div class="sub"><span id="headerSub">Parle avec tes amis • 10+</span></div></div></div>
@@ -174,7 +185,7 @@ let isOwner=false; // Le statut propriétaire est vérifié par le serveur.
 const reasons=["😡 Insulte ou harcèlement","⚠️ Menace","🔞 Contenu inapproprié","🗯️ Propos haineux","📢 Spam","🔗 Lien suspect","💰 Demande d'argent","🔐 Informations personnelles","❓ Autre"];
 const bad=[/pute|connard|salope|fdp/i,/je vais te tuer|je vais te frapper/i,/nude|porno|sexuel/i,/https?:\/\/|www\./i];
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function closeModal(){$("modal").style.display="none"}
+function closeModal(){$("modal").style.display="none";$("modalBox").className="modalBox"}
 function showPrettyNotice(icon,title,text,button="✨ D'accord"){
   $("modalBox").innerHTML=`<div class="bigIcon" style="font-size:62px">${icon}</div><h2 class="prettyNoticeTitle">${esc(title)}</h2><p class="prettyNoticeText">${esc(text)}</p><div class="rule profileCard" style="margin-top:14px">✨ AmiChat</div><div class="modalBtns"><button class="btn primary" onclick="closeModal()">${esc(button)}</button></div>`;
   $("modal").style.display="flex";
@@ -762,15 +773,18 @@ function seed(){
 }
 function msg(text,mine,who,owner=false){let e=document.createElement("div");e.className="msg"+(mine?" mine":"");let badge=owner?" 👑 <span class=\"badge\">PROPRIÉTAIRE</span>":"";e.innerHTML=`<div>${esc(text)}</div><div class="meta">${esc(who)}${badge}</div>`;if(!mine){let b=document.createElement("button");b.className="report";b.textContent="🚩 Signaler";b.onclick=()=>openReport(who,text);e.appendChild(b);if(currentRoom==="PUBLIC" && String(who||"").trim() && String(who).trim()!==String(user||"").trim()){let a=document.createElement("button");a.className="report";a.textContent="💌 Ajouter en ami";a.style.marginLeft="6px";a.onclick=()=>{if(!amichatSocket||!multiplayerReady){alert("🔌 Connecte-toi au serveur AmiChat.");connectMultiplayer();return;}amichatSocket.emit("friendRequest",{to:String(who).trim()});};e.appendChild(a)}}const box=$("msgs");box.appendChild(e);requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})}
 function openReport(u,t){
-  window.__reportUser=String(u); window.__reportText=String(t);
-  $("modalBox").innerHTML=`<div class="bigIcon">🚩✨</div><h2 class="prettyNoticeTitle">Signaler ${esc(u)}</h2><p class="prettyNoticeText">Choisis la raison du signalement.</p><div>${reasons.map((x,i)=>`<label class="reportReason"><input type="radio" name="reason" value="${i}"><span>${x}</span></label>`).join("")}</div><div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="sendReportCurrent()">🚩 Envoyer</button></div>`;
+  window.__reportUser=String(u); window.__reportText=String(t); window.__reportReasonIndex=-1;
+  $("modalBox").className="modalBox reportModal";
+  $("modalBox").innerHTML=`<div class="reportModalHead"><div class="bigIcon">🚩✨</div><h2>Signaler ${esc(u)}</h2><p>Choisis la raison du signalement.</p></div><div class="reportChoices">${reasons.map((x,i)=>`<button type="button" class="reportReasonBtn" data-report-reason="${i}"><span class="reportReasonCheck">✓</span><span class="reportReasonText">${esc(x)}</span></button>`).join("")}</div><div class="modalBtns"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary reportSendBtn" id="sendReportBtn">🚩 Envoyer</button></div>`;
   $("modal").style.display="flex";
+  document.querySelectorAll("[data-report-reason]").forEach(btn=>btn.onclick=()=>{window.__reportReasonIndex=Number(btn.dataset.reportReason);document.querySelectorAll("[data-report-reason]").forEach(x=>x.classList.remove("selected"));btn.classList.add("selected");});
+  $("sendReportBtn").onclick=sendReportCurrent;
 }
 function sendReportCurrent(){sendReport(window.__reportUser||"",window.__reportText||"");}
 function sendReport(u,t){
-  let v=document.querySelector('input[name=reason]:checked');
-  if(!v){showPrettyNotice("⚠️","Choisis une raison","Sélectionne une raison avant d'envoyer le signalement.");return}
-  const report={user:u,text:t,reason:reasons[v.value]};
+  const index=Number(window.__reportReasonIndex);
+  if(!Number.isInteger(index)||index<0||!reasons[index]){showPrettyNotice("⚠️","Choisis une raison","Sélectionne une raison avant d'envoyer le signalement.");return}
+  const report={user:u,text:t,reason:reasons[index]};
   if(amichatSocket&&multiplayerReady) amichatSocket.emit("reportUser",report);
   else { reports.push(report); }
   closeModal();
