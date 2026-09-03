@@ -201,9 +201,8 @@ io.on("connection", socket => {
   socket.on("moderationAction", data=>{
     if(!socket.data.isOwner){ socket.emit("serverError",{message:"Accès propriétaire requis."}); return; }
     const target=String(data?.user||"").trim().slice(0,20), action=String(data?.action||"");
-    const k=key(target); if(!k || !["mute","unmute","ban","unban"].includes(action)) return;
+    const k=key(target); if(!k || !["mute","ban","unban"].includes(action)) return;
     if(action==="mute"){ mutedUsers.add(k); }
-    if(action==="unmute"){ mutedUsers.delete(k); const id=usersByName.get(k); if(id){ const targetSocket=io.sockets.sockets.get(id); if(targetSocket) targetSocket.emit("moderationStatus",{type:"unmuted",name:target}); } }
     if(action==="ban"){ bannedUsers.add(k); mutedUsers.delete(k); const id=usersByName.get(k); if(id){ const targetSocket=io.sockets.sockets.get(id); if(targetSocket) targetSocket.emit("moderationStatus",{type:"banned",name:target}); } }
     if(action==="unban"){ bannedUsers.delete(k); mutedUsers.delete(k); }
     savePersistentState();
