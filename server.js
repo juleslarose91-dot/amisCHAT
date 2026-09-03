@@ -165,7 +165,15 @@ io.on("connection", socket => {
   socket.on("gameInvite", data=>{
     const to=String(data.to||"").trim().slice(0,20), game=String(data.game||""); if(!to||!game)return;
     const targetId=usersByName.get(key(to)); if(!targetId){socket.emit("serverError",{message:"Cet ami n'est pas connecté actuellement."});return;}
-    io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room:`MORPION_${socket.id}_${targetId}`});
+    io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room:`GAME_${socket.id}_${targetId}`});
+  });
+
+  socket.on("gameInviteResponse", data=>{
+    const to=String(data?.to||"").trim().slice(0,20);
+    const game=String(data?.game||"");
+    if(!to||!game)return;
+    const targetId=usersByName.get(key(to));
+    if(targetId) io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted:!!data?.accepted});
   });
 
   socket.on("disconnect",()=>{ const k=key(socket.data.name); if(usersByName.get(k)===socket.id) usersByName.delete(k); });

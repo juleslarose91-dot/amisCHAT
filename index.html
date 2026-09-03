@@ -621,10 +621,17 @@ function sendGameInvite(game){
   const gameName=gameNames[game]||"Mini-jeu";
   if(amichatSocket && multiplayerReady){
     amichatSocket.emit("gameInvite", {to:f, game:game});
-    alert(`🎮 Invitation envoyée à ${f} pour jouer à ${gameName} !`);
+    showGameInviteNotice("sent",`Invitation envoyée ! 🎮`,`Ton invitation pour ${gameName} a été envoyée à ${f} 💌`);
   }else{
-    alert(`🎮 Invitation préparée pour ${f} pour jouer à ${gameName}. Connecte-toi au serveur multijoueur pour envoyer une invitation en ligne.`);
+    showGameInviteNotice("error","Connexion requise","Connecte-toi au serveur multijoueur pour envoyer une invitation en ligne.");
   }
+}
+
+
+function showGameInviteNotice(type,title,text){
+  const icon=type==="sent"?"🎮💌":type==="accepted"?"🎉🤝":"💔🎮";
+  $("modalBox").innerHTML=`<div class="bigIcon">${icon}</div><h2 style="text-align:center;margin:6px 0">${esc(title)}</h2><p style="text-align:center;font-size:16px">${esc(text)}</p><div class="modalBtns"><button class="btn primary" onclick="closeModal()">OK</button></div>`;
+  $("modal").style.display="flex";
 }
 
 
@@ -885,11 +892,11 @@ function connectMultiplayer(){
       const newRequests=Array.isArray(data?.requests)?data.requests:[];
       const newFriends=Array.isArray(data?.friends)?data.friends:[];
       const cachedFriends=Array.isArray(friends)?friends:[];
-      const cachedRequests=Array.isArray(requests)?requests:[];
-      /* Correctif : une réponse vide du serveur ne doit JAMAIS supprimer les amis déjà sauvegardés. */
+      /* Les amis restent sauvegardés, mais les demandes viennent du serveur afin qu'une
+         demande acceptée/refusée disparaisse immédiatement. */
       const mergeUnique=(a,b)=>[...new Map([...(a||[]),...(b||[])].map(x=>[String(x).trim().toLowerCase(),String(x).trim()])).values()];
       friends=mergeUnique(cachedFriends,newFriends);
-      requests=mergeUnique(cachedRequests,newRequests);
+      requests=mergeUnique([],newRequests);
       saveSocialCache();
       render();
     });
@@ -915,14 +922,34 @@ function connectMultiplayer(){
       showFriendToast("refused","Demande refusée",`${f} a refusé ta demande d'ami. 💔`);
     });
     amichatSocket.on("gameInvite", data=>{
-      if(!data || data.game!=="morpion") return;
+      if(!data || !data.game) return;
       const from=String(data.from||"Un ami").slice(0,20);
-      const ok=confirm(`🎮 ${from} t'invite à jouer au Morpion !\n\nAccepter ?`);
-      if(ok){
-        currentRoom="GAME_"+String(data.room||"PUBLIC").slice(0,40);
-        openChat("🎮 Morpion avec "+from,currentRoom);
-        alert("🎮 Invitation acceptée ! Le Morpion s'ouvre. (La synchronisation complète du plateau peut être ajoutée ensuite.)");
-      }
+      const game=String(data.game);
+      const gameNames={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+      const gameName=gameNames[game]||"Mini-jeu";
+      $("modalBox").innerHTML=`<div class="bigIcon" style="font-size:58px">🎮💌</div>
+        <h2 style="text-align:center;margin:6px 0">Invitation à jouer !</h2>
+        <p style="text-align:center;font-size:16px"><b>${esc(from)}</b> t'invite à jouer à <b>${esc(gameName)}</b> ✨</p>
+        <div class="rule" style="text-align:center;margin-top:14px">🤝 Veux-tu accepter cette invitation ?</div>
+        <div class="modalBtns"><button class="btn" id="gameInviteRefuse">✖ Refuser</button><button class="btn primary" id="gameInviteAccept">🎮 Accepter</button></div>`;
+      $("modal").style.display="flex";
+      $("gameInviteAccept").onclick=()=>{
+        if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameInviteResponse",{to:from,game,accepted:true});
+        closeModal();
+        selectedGame=game; screen="game"; render();
+        showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`Tu joues maintenant à ${gameName} avec ${from} 🤝`);
+      };
+      $("gameInviteRefuse").onclick=()=>{
+        if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameInviteResponse",{to:from,game,accepted:false});
+        closeModal();
+      };
+    });
+    amichatSocket.on("gameInviteResponse", data=>{
+      const from=String(data?.from||"Ton ami").trim();
+      const gameNames={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+      const gameName=gameNames[String(data?.game||"")]||"le jeu";
+      if(data?.accepted) showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`${from} a accepté ton invitation pour ${gameName} 🤝`);
+      else showGameInviteNotice("refused","Invitation refusée",`${from} a refusé ton invitation pour ${gameName}.`);
     });
     amichatSocket.on("serverError", data=>{ console.warn("AmiChat:", data?.message); if(data?.message) alert("⚠️ "+data.message); });
     amichatSocket.on("ownerStatus", data=>{
