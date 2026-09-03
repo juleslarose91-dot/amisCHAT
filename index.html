@@ -384,12 +384,12 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
 
 
 /* ===== Nouveaux mini-jeux ===== */
-let selectedGame=""; let gameXPClaimed=false; let quizIndex=0, quizScore=0; let guessNumber=0, guessTries=0; let memoryDeck=[], memoryOpen=[], memoryMatched=0, memoryLock=false;
+let selectedGame=""; let activeGameSession=null; let gameXPClaimed=false; let quizIndex=0, quizScore=0; let guessNumber=0, guessTries=0; let memoryDeck=[], memoryOpen=[], memoryMatched=0, memoryLock=false;
 function openGame(name){selectedGame=name;screen="game";gameXPClaimed=false;render();}
 function gameXP(amount=20){if(gameXPClaimed) return; gameXPClaimed=true; levelXP+=amount; while(levelXP>=XP_PER_LEVEL&&level<MAX_LEVEL){levelXP-=XP_PER_LEVEL;level++;} if(level>=MAX_LEVEL){level=MAX_LEVEL;levelXP=XP_PER_LEVEL;} saveProfile();}
 function gameShell(title,icon,body){return `<div class="panel"><button class="btn" onclick="screen='games';render()">← Mini-jeux</button><div class="gameArea"><div class="bigIcon">${icon}</div><h2>${title}</h2>${body}</div></div>`}
 function renderSelectedGame(r){
- if(selectedGame==='morpion'){r.innerHTML=gameShell('Morpion','❌⭕',`<div class="rule"><div class="gameHint">Tu joues avec ❌ • le bot joue avec ⭕</div><div id="gameStatus" class="gameStatus">À toi de jouer !</div><div id="gameBoard" class="gameBoard"></div><div class="gameActions"><button class="btn primary" onclick="restartMorpion()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMorpion,0);return}
+ if(selectedGame==='morpion'){r.innerHTML=gameShell('Morpion','❌⭕',`<div class="rule"><div class="gameHint">${activeGameSession?'Tu joues avec ton ami 🤝 • '+(activeGameSession.symbol==='X'?'Tu es ❌':'Tu es ⭕'):'Tu joues avec ❌ • le bot joue avec ⭕'}</div><div id="gameStatus" class="gameStatus">À toi de jouer !</div><div id="gameBoard" class="gameBoard"></div><div class="gameActions"><button class="btn primary" onclick="restartMorpion()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMorpion,0);return}
  if(selectedGame==='rps'){r.innerHTML=gameShell('Pierre • Feuille • Ciseaux','🪨📄✂️',`<div class="rule"><p>Choisis ton coup contre le bot 🤖</p><div class="rpsChoices"><button class="btn" onclick="playRPS('🪨')">🪨</button><button class="btn" onclick="playRPS('📄')">📄</button><button class="btn" onclick="playRPS('✂️')">✂️</button></div><div id="rpsResult" class="gameResult">À toi !</div><div class="gameActions"><button class="btn primary" onclick="openGame('rps')">🔄 Rejouer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);return}
  if(selectedGame==='quiz'){startNewQuizRound();quizIndex=0;quizScore=0;renderQuiz(r);return}
  if(selectedGame==='memory'){r.innerHTML=gameShell('Memory','🃏',`<div class="rule"><div class="gameHint">Trouve toutes les paires.</div><div id="memoryBoard" class="memoryBoard"></div><div id="memoryResult" class="gameResult"></div><div class="gameActions"><button class="btn primary" onclick="startMemory()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMemory,0);return}
@@ -476,6 +476,7 @@ function checkGuess(){const inp=$('guessInput'),out=$('guessResult');const n=Num
 let morpionBoard = [];
 let morpionOver = false;
 let morpionBotBusy = false;
+let morpionTurn = "X";
 const morpionWins = [
   [0,1,2],[3,4,5],[6,7,8],
   [0,3,6],[1,4,7],[2,5,8],
@@ -497,6 +498,7 @@ function startMorpion(){
   morpionBoard = ["","","","","","","","",""];
   morpionOver = false;
   morpionBotBusy = false;
+  morpionTurn = "X";
   drawMorpion();
 }
 
@@ -511,11 +513,13 @@ function drawMorpion(){
     status.textContent = "🎉 Tu as gagné ! Bravo ! Tu peux recommencer.";
     morpionOver = true;
   } else if(result === "O"){
-    status.textContent = "🤖 Le bot a gagné ! Tu peux recommencer.";
+    status.textContent = activeGameSession ? "🎉 Partie terminée !" : "🤖 Le bot a gagné ! Tu peux recommencer.";
     morpionOver = true;
   } else if(result === "draw"){
     status.textContent = "🤝 Match nul ! Tu peux recommencer.";
     morpionOver = true;
+  } else if(activeGameSession){
+    status.textContent = morpionTurn===activeGameSession.symbol ? "À toi de jouer !" : "⏳ Au tour de ton ami…";
   } else if(morpionBotBusy){
     status.textContent = "🤖 Le bot réfléchit…";
   } else {
@@ -528,7 +532,7 @@ function drawMorpion(){
     cell.className = "gameCell";
     cell.textContent = morpionBoard[i];
     // Une case vide reste cliquable tant que la partie n'est pas terminée.
-    cell.disabled = morpionOver || morpionBotBusy || morpionBoard[i] !== "";
+    cell.disabled = morpionOver || morpionBotBusy || morpionBoard[i] !== "" || (activeGameSession && morpionTurn!==activeGameSession.symbol);
     cell.onclick = () => playMorpion(i);
     boardEl.appendChild(cell);
   }
@@ -536,6 +540,14 @@ function drawMorpion(){
 
 function playMorpion(i){
   if(morpionOver || morpionBotBusy || morpionBoard[i] !== "") return;
+  if(activeGameSession){
+    if(morpionTurn!==activeGameSession.symbol) return;
+    morpionBoard[i]=activeGameSession.symbol;
+    morpionTurn=activeGameSession.symbol==="X"?"O":"X";
+    if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameAction",{room:activeGameSession.room,game:"morpion",type:"move",index:i,symbol:activeGameSession.symbol});
+    drawMorpion();
+    return;
+  }
 
   // Le joueur place X.
   morpionBoard[i] = "X";
@@ -956,13 +968,34 @@ function connectMultiplayer(){
       $("gameInviteAccept").onclick=()=>{
         if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameInviteResponse",{to:from,game,accepted:true});
         closeModal();
-        selectedGame=game; screen="game"; render();
-        showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`Tu joues maintenant à ${gameName} avec ${from} 🤝`);
+        showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`Connexion à la partie avec ${from}… 🤝`);
       };
       $("gameInviteRefuse").onclick=()=>{
         if(amichatSocket&&multiplayerReady) amichatSocket.emit("gameInviteResponse",{to:from,game,accepted:false});
         closeModal();
       };
+    });
+    amichatSocket.on("gameStart", data=>{
+      const game=String(data?.game||"");
+      if(!game||!data?.room)return;
+      const inviter=String(data.from||"");
+      activeGameSession={room:String(data.room),game,symbol:key(user)===key(inviter)?"X":"O",peer:key(user)===key(inviter)?String(data.to||"Ton ami"):String(data.from||"Ton ami")};
+      selectedGame=game; screen="game"; gameXPClaimed=false; closeModal(); render();
+      showGameInviteNotice("accepted","Partie prête ! 🎮",`Tu joues maintenant avec ${activeGameSession.symbol==='X'?data.to:data.from} 🤝`);
+    });
+    amichatSocket.on("gameAction", data=>{
+      if(!activeGameSession||String(data?.room)!==activeGameSession.room||data?.game!==activeGameSession.game)return;
+      if(data.game==="morpion"&&data.type==="move"){
+        const i=Number(data.index); const sym=data.symbol;
+        if(i>=0&&i<9&&morpionBoard[i]===""){
+          morpionBoard[i]=sym; morpionTurn=sym==="X"?"O":"X"; drawMorpion();
+        }
+      }
+      /* Actions multijoueur pour les autres mini-jeux. */
+      if(data.game==="rps"&&data.type==="choice"&&window.__amiGameMultiReceive) window.__amiGameMultiReceive(data);
+      if(data.game==="quiz"&&data.type==="answer"&&window.__amiGameMultiReceive) window.__amiGameMultiReceive(data);
+      if(data.game==="memory"&&(data.type==="flip"||data.type==="resolve")&&window.__amiGameMultiReceive) window.__amiGameMultiReceive(data);
+      if(data.game==="guess"&&data.type==="guess"&&window.__amiGameMultiReceive) window.__amiGameMultiReceive(data);
     });
     amichatSocket.on("gameInviteResponse", data=>{
       const from=String(data?.from||"Ton ami").trim();
@@ -1035,6 +1068,126 @@ window.addEventListener("load",()=>{
     }
   }catch(e){}
 });
+
+<script>
+/* ===== Parties avec un vrai ami : tous les mini-jeux =====
+   Ajout ciblé : aucun changement au reste de l'application. */
+(function(){
+  const oldRenderSelectedGame = window.renderSelectedGame || renderSelectedGame;
+  const multi = {
+    rps:{mine:null,other:null},
+    quiz:{answers:{},done:false},
+    memory:{deck:[],open:[],matched:[],lock:false},
+    guess:{target:0,tries:{},won:false,last:""}
+  };
+  function roomSeed(room){
+    let n=0; for(const c of String(room||"")) n=((n*31)+c.charCodeAt(0))>>>0; return n||1;
+  }
+  function rand(seed){ let x=seed>>>0; return ()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296}; }
+  function emitAction(type,payload={}){
+    if(activeGameSession&&amichatSocket&&multiplayerReady)
+      amichatSocket.emit("gameAction",{room:activeGameSession.room,game:activeGameSession.game,type,...payload});
+  }
+  function isMulti(g){return !!(activeGameSession&&activeGameSession.game===g);}
+  function peer(){return activeGameSession?.peer||"ton ami";}
+
+  function rpsMulti(choice){
+    if(multi.rps.mine) return;
+    multi.rps.mine=choice; emitAction("choice",{choice});
+    drawRpsMulti();
+  }
+  function rpsWin(a,b){
+    if(a===b)return "🤝 Égalité !";
+    return (a==="🪨"&&b==="✂️")||(a==="📄"&&b==="🪨")||(a==="✂️"&&b==="📄")?"🎉 Tu gagnes !":"💫 Ton ami gagne !";
+  }
+  function drawRpsMulti(){
+    const e=$("rpsResult"); if(!e)return;
+    if(multi.rps.mine&&multi.rps.other) e.textContent=`Toi ${multi.rps.mine} • ${peer()} ${multi.rps.other} — ${rpsWin(multi.rps.mine,multi.rps.other)}`;
+    else if(multi.rps.mine)e.textContent="⏳ Ton choix est envoyé. Attente de ton ami…";
+    else e.textContent="Choisis ton coup !";
+  }
+
+  function quizForRoom(){
+    const r=rand(roomSeed(activeGameSession.room)), pool=[...quizBank], out=[];
+    for(let k=0;k<3;k++){ const i=Math.floor(r()*pool.length); const q=pool.splice(i,1)[0]; out.push(q); }
+    return out;
+  }
+  function renderQuizMulti(){
+    const qs=quizForRoom(), idx=Object.keys(multi.quiz.answers).filter(k=>k.startsWith("me")).length;
+    const q=qs[Math.min(idx,qs.length-1)];
+    if(idx>=qs.length){
+      const meScore=Object.entries(multi.quiz.answers).filter(([k,v])=>k.startsWith("me")&&v).length;
+      const otherScore=Object.entries(multi.quiz.answers).filter(([k,v])=>k.startsWith("other")&&v).length;
+      $("root").innerHTML=gameShell("Quiz terminé","🏆",`<div class="rule"><h3>Ton score : ${meScore}/${qs.length}</h3><h3>Score de ${esc(peer())} : ${otherScore}/${qs.length}</h3><p class="muted">Vous avez joué ensemble dans la même partie 🤝</p><div class="gameActions"><button class="btn primary" onclick="openGame('quiz')">🔄 Rejouer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);
+      return;
+    }
+    $("root").innerHTML=gameShell("Quiz","🧠",`<div class="rule"><div class="gameHint">🤝 Partie avec ${esc(peer())}</div><div class="badge">Question ${idx+1}/${qs.length}</div><h3>${esc(q.q)}</h3>${q.a.map((x,i)=>`<button class="btn quizOption" onclick="window.__amiQuizAnswer(${i})">${esc(x)}</button>`).join("")}<div class="gameResult">Réponds puis ton ami répond de son côté.</div></div>`);
+  }
+  window.__amiQuizAnswer=function(i){
+    const qs=quizForRoom(), idx=Object.keys(multi.quiz.answers).filter(k=>k.startsWith("me")).length, q=qs[idx];
+    const ok=i===q.c; multi.quiz.answers["me"+idx]=ok; emitAction("answer",{index:idx,correct:ok});
+    renderQuizMulti();
+  };
+
+  function memoryDeckForRoom(){
+    if(multi.memory.deck.length)return multi.memory.deck;
+    const a=["🍀","⭐","🎮","💜","🍀","⭐","🎮","💜"], r=rand(roomSeed(activeGameSession.room));
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    multi.memory.deck=a; return a;
+  }
+  function drawMemoryMulti(){
+    const b=$("memoryBoard"); if(!b)return; const deck=memoryDeckForRoom(); b.innerHTML="";
+    deck.forEach((x,i)=>{const done=multi.memory.matched.includes(i), open=done||multi.memory.open.includes(i);
+      const bt=document.createElement("button");bt.className="memoryCard"+(open?" flipped":"");bt.textContent=open?(done?"✅":x):"❓";bt.disabled=done||multi.memory.lock;bt.onclick=()=>flipMemoryMulti(i);b.appendChild(bt);
+    });
+    if(multi.memory.matched.length===deck.length)$("memoryResult").textContent="🎉 Vous avez trouvé toutes les paires ensemble !";
+  }
+  function flipMemoryMulti(i){
+    if(multi.memory.lock||multi.memory.open.includes(i)||multi.memory.matched.includes(i))return;
+    multi.memory.open.push(i); emitAction("flip",{index:i}); drawMemoryMulti();
+    if(multi.memory.open.length===2){
+      multi.memory.lock=true; const [a,b]=multi.memory.open, deck=memoryDeckForRoom();
+      if(deck[a]===deck[b]) setTimeout(()=>{multi.memory.matched.push(a,b);multi.memory.open=[];multi.memory.lock=false;emitAction("resolve",{matched:[a,b]});drawMemoryMulti();},350);
+      else setTimeout(()=>{multi.memory.open=[];multi.memory.lock=false;emitAction("resolve",{matched:[]});drawMemoryMulti();},650);
+    }
+  }
+
+  function guessTarget(){if(!multi.guess.target)multi.guess.target=(roomSeed(activeGameSession.room)%20)+1;return multi.guess.target;}
+  function guessMulti(){
+    const inp=$("guessInput"),out=$("guessResult"),n=Number(inp?.value); if(!n||n<1||n>20)return;
+    const target=guessTarget();multi.guess.tries.me=(multi.guess.tries.me||0)+1;
+    let text=n===target?`🎉 Tu as trouvé ${target} !`:n<target?"⬆️ Plus grand !":"⬇️ Plus petit !";
+    if(n===target)multi.guess.won=true; emitAction("guess",{n,text,won:n===target,tries:multi.guess.tries.me});out.textContent=text;if(inp)inp.value="";
+  }
+
+  window.renderSelectedGame=function(r){
+    if(!activeGameSession) return oldRenderSelectedGame(r);
+    const g=selectedGame;
+    if(g==="morpion") return oldRenderSelectedGame(r);
+    if(g==="rps"){
+      r.innerHTML=gameShell("Pierre • Feuille • Ciseaux","🪨📄✂️",`<div class="rule"><p>🤝 Tu joues avec <b>${esc(peer())}</b></p><div class="rpsChoices"><button class="btn" onclick="window.__amiRps('🪨')">🪨</button><button class="btn" onclick="window.__amiRps('📄')">📄</button><button class="btn" onclick="window.__amiRps('✂️')">✂️</button></div><div id="rpsResult" class="gameResult">Choisis ton coup !</div></div>`);drawRpsMulti();return;
+    }
+    if(g==="quiz"){multi.quiz.answers={};renderQuizMulti();return;}
+    if(g==="memory"){multi.memory={deck:[],open:[],matched:[],lock:false};r.innerHTML=gameShell("Memory","🃏",`<div class="rule"><div class="gameHint">🤝 Partie avec ${esc(peer())}</div><div id="memoryBoard" class="memoryBoard"></div><div id="memoryResult" class="gameResult"></div></div>`);drawMemoryMulti();return;}
+    if(g==="guess"){multi.guess={target:0,tries:{},won:false,last:""};r.innerHTML=gameShell("Devine le nombre","🔢",`<div class="rule"><p>🤝 Toi et <b>${esc(peer())}</b> cherchez le même nombre entre <b>1 et 20</b>.</p><input id="guessInput" class="guessInput" type="number" min="1" max="20" placeholder="Ton nombre"><button class="btn primary" onclick="window.__amiGuess()">Deviner 🎯</button><div id="guessResult" class="gameResult"></div></div>`);return;}
+    return oldRenderSelectedGame(r);
+  };
+  window.__amiRps=rpsMulti; window.__amiGuess=guessMulti;
+
+
+  window.__amiGameMultiReceive=function(data){
+      const t=data.type;
+      if(data.game==="rps"&&t==="choice"){multi.rps.other=data.choice;drawRpsMulti();}
+      if(data.game==="quiz"&&t==="answer"){multi.quiz.answers["other"+data.index]=!!data.correct;}
+      if(data.game==="memory"){
+        if(t==="flip"&&!multi.memory.open.includes(Number(data.index))){multi.memory.open.push(Number(data.index));drawMemoryMulti();}
+        if(t==="resolve"){multi.memory.open=[];if(Array.isArray(data.matched)&&data.matched.length)multi.memory.matched.push(...data.matched.filter(i=>!multi.memory.matched.includes(i)));drawMemoryMulti();}
+      }
+      if(data.game==="guess"&&t==="guess"){multi.guess.tries.other=data.tries;const e=$("guessResult");if(e)e.textContent=`${esc(peer())} : ${data.text}`;}
+  };
+
+})();
+</script>
 </script>
 
 <!-- CrazyGames SDK: chargé après l'interface pour éviter une page vide -->

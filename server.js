@@ -13,6 +13,7 @@ const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
 const messagesByRoom = new Map();
+const gameSessions = new Map();
 const fs = require("fs");
 const DATA_FILE = path.join(__dirname, "amichat-data.json");
 
@@ -181,7 +182,25 @@ io.on("connection", socket => {
     const game=String(data?.game||"");
     if(!to||!game)return;
     const targetId=usersByName.get(key(to));
-    if(targetId) io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted:!!data?.accepted});
+    if(!targetId) return;
+    if(data?.accepted){
+      const room="GAME_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);
+      gameSessions.set(room,{game,players:[socket.id,targetId]});
+      socket.join(room);
+      const targetSocket=io.sockets.sockets.get(targetId); if(targetSocket) targetSocket.join(room);
+      const payload={from:socket.data.name,to:displayName(to),game,room};
+      socket.emit("gameStart",payload);
+      io.to(targetId).emit("gameStart",payload);
+    }else{
+      io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted:false});
+    }
+  });
+
+  socket.on("gameAction", data=>{
+    const room=String(data?.room||"");
+    const session=gameSessions.get(room);
+    if(!session || !session.players.includes(socket.id)) return;
+    socket.to(room).emit("gameAction",{...data,from:socket.data.name});
   });
 
   socket.on("disconnect",()=>{
