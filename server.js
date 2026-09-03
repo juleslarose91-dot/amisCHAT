@@ -172,8 +172,12 @@ io.on("connection", socket => {
 
   socket.on("gameInvite", data=>{
     const to=String(data.to||"").trim().slice(0,20), game=String(data.game||""); if(!to||!game)return;
-    const targetId=usersByName.get(key(to)); if(!targetId){socket.emit("serverError",{message:"Cet ami n'est pas connecté actuellement."});return;}
-    const room=`GAME_${socket.id}_${targetId}`; gameInvites.set(`${key(socket.data.name)}|${key(to)}|${game}`,room); io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room});
+    const targetId=usersByName.get(key(to));
+    if(!targetId){socket.emit("serverError",{message:"Cet ami n'est pas connecté actuellement."});return;}
+    const room=`GAME_${socket.id}_${targetId}_${Date.now().toString(36)}`;
+    const inviteKey=`${key(socket.data.name)}|${key(to)}|${game}`;
+    gameInvites.set(inviteKey,room);
+    io.to(targetId).emit("gameInvite",{from:socket.data.name,game,room});
   });
 
   socket.on("gameInviteResponse", data=>{
@@ -181,7 +185,18 @@ io.on("connection", socket => {
     const game=String(data?.game||"");
     if(!to||!game)return;
     const targetId=usersByName.get(key(to));
-    const accepted=!!data?.accepted; const room=gameInvites.get(`${key(to)}|${key(socket.data.name)}|${game}`)||""; if(accepted&&room){socket.join(room); const other=io.sockets.sockets.get(targetId); if(other) other.join(room);} if(targetId) io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted,room}); socket.emit("gameInviteResponse",{from:to,game,accepted,room,me:true});
+    const inviteKey=`${key(to)}|${key(socket.data.name)}|${game}`;
+    const room=String(data?.room||gameInvites.get(inviteKey)||"");
+    const accepted=!!data?.accepted;
+    if(!targetId||!room) return;
+    if(accepted){
+      socket.join(room);
+      const other=io.sockets.sockets.get(targetId);
+      if(other) other.join(room);
+    }
+    io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted,room});
+    socket.emit("gameInviteResponse",{from:to,game,accepted,room,me:true});
+    gameInvites.delete(inviteKey);
   });
 
   socket.on("gameAction", data=>{
