@@ -1119,6 +1119,93 @@ window.addEventListener("error",()=>{
     }catch(err){}
   });
 })();
+
+/* ===== Mini-jeux avec vrai ami : synchronisation réelle ===== */
+let mpState={};
+function mpKey(){return multiplayerGame?multiplayerGame.room:"";}
+function mpInit(){
+  if(!multiplayerGame||!multiplayerGame.room)return;
+  const k=mpKey();
+  if(!mpState[k]){
+    const s=[...multiplayerGame.room].reduce((a,c)=>a+c.charCodeAt(0),0);
+    mpState[k]={board:Array(9).fill(""),turn:"X",rps:{},quiz:0,memoryDeck:["🍀","⭐","🎮","💜","🍀","⭐","🎮","💜"],memoryOpen:[],memoryMatched:[],guess:1+(s%20),guessHistory:[]};
+  }
+  return mpState[k];
+}
+function mpRole(){return multiplayerGame?.role||"X";}
+function mpEmit(type,value){if(multiplayerGame&&amichatSocket)amichatSocket.emit("gameAction",{room:multiplayerGame.room,game:multiplayerGame.game,type,value});}
+function mpMorpionMove(i){
+ const s=mpInit(); if(!s||s.turn!==mpRole()||s.board[i]||morpionWinner(s.board))return;
+ const v={i,mark:mpRole()}; s.board[i]=v.mark;s.turn=v.mark==="X"?"O":"X";mpEmit("morpionMove",v);render();
+}
+function mpRps(choice){const s=mpInit();s.rps[mpRole()]=choice;mpEmit("rps",choice);render();}
+function mpQuizAnswer(n){mpEmit("quizAnswer",n);const out=$("mpResult");if(out)out.textContent="Réponse envoyée à ton ami 🤝";}
+function mpMemoryFlip(i){
+ const s=mpInit(); if(!s||s.memoryMatched.includes(i)||s.memoryOpen.includes(i)||s.memoryOpen.length>=2)return;
+ s.memoryOpen.push(i);mpEmit("memoryFlip",i);
+ if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);setTimeout(()=>{s.memoryOpen=[];render();},600)}
+ render();
+}
+function mpGuess(n){
+ const s=mpInit();n=Number(n);if(!n||n<1||n>20)return;s.guessHistory.push({who:mpRole(),n});mpEmit("guess",n);render();
+}
+function renderSelectedGame(r){
+ if(multiplayerGame&&multiplayerGame.pending&&multiplayerGame.game===selectedGame){
+  const names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
+  r.innerHTML=gameShell(names[selectedGame]||'Mini-jeu','🎮',`<div class="rule"><div class="gameHint">💌 Invitation envoyée à <b>${esc(multiplayerGame.friend)}</b>.</div><div class="gameResult">⏳ En attente de sa réponse…</div></div>`);return;
+ }
+ if(multiplayerGame&&multiplayerGame.active&&multiplayerGame.game===selectedGame){
+  const s=mpInit(), names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
+  let body='';
+  if(selectedGame==='morpion'){
+   const win=morpionWinner(s.board), turnText=win==="draw"?"🤝 Match nul":win?`🎉 ${win} a gagné !`:s.turn===mpRole()?"👉 C'est ton tour":"⏳ Tour de ton ami";
+   body=`<div id="gameStatus" class="gameStatus">${turnText} — Tu joues avec ${mpRole()}</div><div class="gameBoard">${s.board.map((v,i)=>`<button class="cell" onclick="mpMorpionMove(${i})">${v}</button>`).join("")}</div>`;
+  }else if(selectedGame==='rps'){
+   const mine=s.rps[mpRole()]||"?", other=s.rps[mpRole()==="X"?"O":"X"]||"?";
+   body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" onclick="mpRps('🪨')">🪨</button><button class="btn" onclick="mpRps('📄')">📄</button><button class="btn" onclick="mpRps('✂️')">✂️</button></div><div class="gameResult">Toi : ${mine} • Ton ami : ${other}</div>`;
+  }else if(selectedGame==='quiz'){
+   const q=quizBank[s.quiz%quizBank.length];body=`<p><b>${esc(q.q)}</b></p>${q.a.map((a,i)=>`<button class="btn" style="margin:4px" onclick="mpQuizAnswer(${i})">${esc(a)}</button>`).join("")}<div id="mpResult" class="gameResult">Répondez tous les deux 🤝</div>`;
+  }else if(selectedGame==='memory'){
+   body=`<div class="memoryBoard">${s.memoryDeck.map((x,i)=>{const open=s.memoryOpen.includes(i)||s.memoryMatched.includes(i);return `<button class="memoryCard${open?' flipped':''}" onclick="mpMemoryFlip(${i})">${open?x:'❓'}</button>`}).join("")}</div><div class="gameResult">Trouvez les paires ensemble 🤝</div>`;
+  }else{
+   const hist=s.guessHistory.slice(-6).map(x=>`${x.who==="X"?"❌":"⭕"} ${x.n}`).join(" • ");
+   body=`<p>Choisissez un nombre entre <b>1 et 20</b> à tour de rôle.</p><input id="mpGuessInput" class="guessInput" type="number" min="1" max="20"><button class="btn primary" onclick="mpGuess($('mpGuessInput').value)">Deviner 🎯</button><div class="gameResult">${hist||"À vous de jouer 🤝"}</div>`;
+  }
+  r.innerHTML=gameShell(names[selectedGame]||'Mini-jeu','🎮',`<div class="rule"><div class="gameHint">🤝 Tu joues avec <b>${esc(multiplayerGame.friend)}</b> — aucun bot.</div>${body}</div>`);return;
+ }
+ renderSelectedGameSolo(r);
+}
+/* Rôle des deux vrais joueurs et synchronisation des actions */
+function attachMiniGameSync(){
+ if(!amichatSocket||amichatSocket.__miniGameSyncAttached)return;
+ amichatSocket.__miniGameSyncAttached=true;
+ amichatSocket.on("gameInviteResponse",data=>{
+   if(!data?.accepted)return;
+   if(multiplayerGame&&multiplayerGame.room===String(data.room||"")){
+     multiplayerGame.role=data.me?"O":"X";
+     mpInit();
+     if(screen==="game"&&selectedGame===multiplayerGame.game)render();
+   }
+ });
+ amichatSocket.on("gameAction",data=>{
+   if(!multiplayerGame||String(data?.game||"")!==multiplayerGame.game)return;
+   const s=mpInit(); if(!s)return;
+   if(data.type==="morpionMove"&&data.value&&Number.isInteger(Number(data.value.i))){
+     const i=Number(data.value.i);if(!s.board[i]){s.board[i]=data.value.mark;s.turn=data.value.mark==="X"?"O":"X";}
+   }else if(data.type==="rps"){s.rps[mpRole()==="X"?"O":"X"]=data.value;}
+   else if(data.type==="quizAnswer"){const out=$("mpResult");if(out)out.textContent=`Ton ami a choisi : ${data.value}`;}
+   else if(data.type==="memoryFlip"){
+     const i=Number(data.value);if(!s.memoryMatched.includes(i)&&!s.memoryOpen.includes(i))s.memoryOpen.push(i);
+     if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);setTimeout(()=>{s.memoryOpen=[];render();},600);}
+   }else if(data.type==="guess"){s.guessHistory.push({who:mpRole()==="X"?"O":"X",n:Number(data.value)});}
+   if(screen==="game"&&selectedGame===multiplayerGame.game)render();
+ });
+}
+
+
+const __oldConnectMultiplayer=window.connectMultiplayer||connectMultiplayer;
+window.connectMultiplayer=function(){ const out=__oldConnectMultiplayer.apply(this,arguments); setTimeout(attachMiniGameSync,0); return out; };
+attachMiniGameSync();
 </script>
 
 
