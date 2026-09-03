@@ -50,6 +50,14 @@ function sendState(socket){
 }
 function friendRoom(a,b){ return "FRIEND_"+[key(a),key(b)].sort().join("_").slice(0,80); }
 
+function broadcastPresence(){
+  io.emit("presence",{
+    users:[...usersByName.values()]
+      .map(id=>io.sockets.sockets.get(id)?.data?.name)
+      .filter(Boolean)
+  });
+}
+
 
 function renamePersistentUser(oldName,newName,socket){
   const oldKey=key(oldName), newKey=key(newName);
@@ -67,7 +75,7 @@ function renamePersistentUser(oldName,newName,socket){
   usersByName.set(newKey,socket.id);
   socket.data.name=newName;
   savePersistentState();
-  io.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
+  broadcastPresence();
   return true;
 }
 
@@ -87,7 +95,7 @@ io.on("connection", socket => {
     socket.data.name=name; socket.data.age=age; socket.data.language=data.language==="EN"?"EN":"FR";
     usersByName.set(k,socket.id);
     getSet(requestsByUser,k); getSet(friendsByUser,k);
-    socket.emit("presence",{users:[...usersByName.values()].map(id=>io.sockets.sockets.get(id)?.data?.name).filter(Boolean)});
+    broadcastPresence();
     sendState(socket);
     socket.emit("serverReady",{name});
   });
@@ -176,7 +184,11 @@ io.on("connection", socket => {
     if(targetId) io.to(targetId).emit("gameInviteResponse",{from:socket.data.name,game,accepted:!!data?.accepted});
   });
 
-  socket.on("disconnect",()=>{ const k=key(socket.data.name); if(usersByName.get(k)===socket.id) usersByName.delete(k); });
+  socket.on("disconnect",()=>{
+    const k=key(socket.data.name);
+    if(usersByName.get(k)===socket.id) usersByName.delete(k);
+    broadcastPresence();
+  });
 });
 
 server.listen(PORT,()=>console.log(`AmiChat server listening on ${PORT}`));

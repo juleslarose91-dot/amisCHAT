@@ -182,7 +182,7 @@ function showSavedToast(title, message){
 function showFriendToast(type,title,message){
   let el=document.getElementById("friendToast");
   if(!el){el=document.createElement("div");el.id="friendToast";document.body.appendChild(el);}
-  const icons={sent:"💌✨",accepted:"💖🎉",refused:"💔✨"};
+  const icons={sent:"💌✨",accepted:"💖🎉",refused:"💔✨",offline:"⚫📡"};
   el.className="friendToast "+type;
   el.innerHTML=`<div class="friendToastIcon">${icons[type]||"✨"}</div><div><b>${esc(title)}</b><span>${esc(message)}</span></div>`;
   el.classList.add("show");clearTimeout(window.__friendToastTimer);
@@ -364,7 +364,16 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
   $("langEN").onclick=()=>{uiLanguage="EN";saveProfile();showSavedToast("🇬🇧 Language changed","The interface is now in English.");render()};
   $("saveProfile").onclick=()=>{let n=$("setName").value.trim(),a=$("setAge").value;if(!n)return alert(uiLanguage==="EN"?"Choose a username.":"Choisis un pseudo.");if(!a||+a<10){showAgeWarning();return;}const oldName=user;user=n;age=a;saveProfile();if(amichatSocket&&multiplayerReady&&oldName!==user)amichatSocket.emit("updateProfile",{name:user});showSavedToast(uiLanguage==="EN"?"Profile saved! 🎉":"Profil enregistré ! 🎉",uiLanguage==="EN"?"Your changes have been saved successfully.":"Tes modifications ont été sauvegardées avec succès.");render()};
   $("saveServer").onclick=()=>{server=$("setServer").value;saveProfile();showSavedToast(uiLanguage==="EN"?"Community saved ✨":"Communauté enregistrée ✨",uiLanguage==="EN"?"Your community has been updated.":"Ta communauté a été mise à jour.");screen="home";render()};return}
- if(screen==="friends"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>`<div class="item"><span>🟢 ${esc(f)}</span><button class="btn primary" onclick="openFriendChat('${esc(f)}')">Parler</button></div>`).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;return}
+ if(screen==="friends"){
+   const onlineNames=(window.AmiChatOnlineUsers||[]).map(x=>String(x||"").trim().toLowerCase());
+   r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes amis</h2><button class="btn primary" onclick="addFriend()">➕ Ajouter un ami</button><div class="list" style="margin-top:15px">${friends.length?friends.map(f=>{
+     const online=onlineNames.includes(String(f||"").trim().toLowerCase());
+     const icon=online?"🟢":"⚫";
+     const status=online?"En ligne":"Pas connecté";
+     return `<div class="item"><span>${icon} ${esc(f)} <small class="muted">• ${status}</small></span><button class="btn primary" onclick="openFriendChat('${esc(f)}')">Parler</button></div>`;
+   }).join(""):'<div class="item">Aucun ami pour le moment. Ajoute quelqu’un ! 🫶</div>'}</div></div>`;
+   return
+ }
  if(screen==="requests"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>💌 Demandes d'amis</h2><p class="muted">Accepte ou refuse les demandes.</p><div class="list">${requests.length?requests.map((f,i)=>`<div class="item"><span>💌 <b>${esc(f)}</b> veut devenir ton ami</span><div class="itemActions"><button class="btn primary" onclick="acceptRequest(${i})">❤️ Accepter</button><button class="btn" onclick="refuseRequest(${i})">✖ Refuser</button></div></div>`).join(""):'<div class="item">Aucune demande en attente.</div>'}</div></div>`;return}
  if(screen==="groups"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes groupes</h2><div class="list">${groups.length?groups.map(g=>`<div class="item"><span>👥 <b>${esc(g.name)}</b><br><small class="muted">Code : ${esc(g.code)}</small></span><button class="btn primary" onclick="openChat('👥 ${esc(g.name)}','${esc(g.code)}')">Ouvrir</button></div>`).join(""):'<div class="item">Aucun groupe. Crée-en un !</div>'}</div></div>`;return}
 
@@ -815,10 +824,16 @@ function saveSocialCache(){
 }
 function loadSocialCache(){
   if(!user)return;
-  try{const d=JSON.parse(localStorage.getItem(amichatStorageKey("social"))||"null");if(d){
-    friends=Array.isArray(d.friends)?d.friends:friends;
-    requests=Array.isArray(d.requests)?d.requests:requests;
-  }}catch(e){}
+  try{
+    const d=JSON.parse(localStorage.getItem(amichatStorageKey("social"))||"null");
+    if(d){
+      const unique=list=>[...new Map((Array.isArray(list)?list:[]).map(x=>[
+        String(x||"").trim().toLowerCase(),String(x||"").trim()
+      ])).values()].filter(Boolean);
+      friends=unique(d.friends);
+      requests=unique(d.requests);
+    }
+  }catch(e){}
 }
 function saveMessageCache(room){
   if(!user||!room||room==="PUBLIC")return;
@@ -828,6 +843,10 @@ function loadMessageCache(room){
   if(!user||!room||room==="PUBLIC")return [];
   try{const d=JSON.parse(localStorage.getItem(amichatStorageKey("messages_"+room))||"[]");return Array.isArray(d)?d:[];}catch(e){return []}
 }
+
+// Recharge tout de suite les amis sauvegardés : ils restent après actualisation
+// et après avoir fermé/réouvert le navigateur sur le même appareil.
+if(user){ loadSocialCache(); }
 
 const SERVER_URL = "https://amischat.onrender.com"
 let amichatSocket = null;
@@ -886,7 +905,8 @@ function connectMultiplayer(){
       }
     });
     amichatSocket.on("presence", data=>{
-      window.AmiChatOnlineUsers = data.users || [];
+      window.AmiChatOnlineUsers = Array.isArray(data?.users) ? data.users : [];
+      if(screen==="friends") render();
     });
     amichatSocket.on("socialState", data=>{
       const newRequests=Array.isArray(data?.requests)?data.requests:[];
@@ -951,7 +971,16 @@ function connectMultiplayer(){
       if(data?.accepted) showGameInviteNotice("accepted","Invitation acceptée ! 🎉",`${from} a accepté ton invitation pour ${gameName} 🤝`);
       else showGameInviteNotice("refused","Invitation refusée",`${from} a refusé ton invitation pour ${gameName}.`);
     });
-    amichatSocket.on("serverError", data=>{ console.warn("AmiChat:", data?.message); if(data?.message) alert("⚠️ "+data.message); });
+    amichatSocket.on("serverError", data=>{
+      console.warn("AmiChat:", data?.message);
+      const message=String(data?.message||"");
+      if(!message)return;
+      if(/n'est pas connecté|pas connecté|connecté actuellement/i.test(message)){
+        showFriendToast("offline","Personne non connectée ⚫",message);
+      }else{
+        alert("⚠️ "+message);
+      }
+    });
     amichatSocket.on("ownerStatus", data=>{
       if(data?.ok){
         isOwner=true;
