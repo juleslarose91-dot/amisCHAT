@@ -1231,7 +1231,11 @@ function renderSelectedGame(r){
      <div class="gameBoard">${s.board.map((v,i)=>`<button class="gameCell" ${(!myTurn||v||win)?'disabled':''} onclick="mpMorpionMove(${i})">${v}</button>`).join("")}</div>`;
   }else if(selectedGame==='rps'){
    const mine=s.rps[mpRole()]||"?", other=s.rps[mpRole()==="X"?"O":"X"]||"?";
-   body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" onclick="mpRps('🪨')">🪨</button><button class="btn" onclick="mpRps('📄')">📄</button><button class="btn" onclick="mpRps('✂️')">✂️</button></div><div class="gameResult">Toi : ${mine} • Ton ami : ${other}</div>`;
+   const mine=s.rps[mpRole()]||"", other=s.rps[mpRole()==="X"?"O":"X"]||"";
+   let result="Choisis ton coup ✨", done=!!(mine&&other);
+   if(mine&&!other) result="⏳ En attente du choix de ton ami…";
+   if(done){const win=(a,b)=>(a==="🪨"&&b==="✂️")||(a==="📄"&&b==="🪨")||(a==="✂️"&&b==="📄");result=mine===other?"🤝 Égalité !":win(mine,other)?"🏆 Tu as gagné ! 🎉":"🏆 Ton ami a gagné ! 🎉";}
+   body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" ${mine?'disabled':''} onclick="mpRps('🪨')">🪨</button><button class="btn" ${mine?'disabled':''} onclick="mpRps('📄')">📄</button><button class="btn" ${mine?'disabled':''} onclick="mpRps('✂️')">✂️</button></div><div class="gameResult">Toi : ${mine||"❓"} • Ton ami : ${other||"❓"}<br>${result}</div>${done?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:''}`;
   }else if(selectedGame==='quiz'){
    const q=quizBank[s.quiz%quizBank.length];body=`<p><b>${esc(q.q)}</b></p>${q.a.map((a,i)=>`<button class="btn" style="margin:4px" onclick="mpQuizAnswer(${i})">${esc(a)}</button>`).join("")}<div id="mpResult" class="gameResult">Répondez tous les deux 🤝</div>`;
   }else if(selectedGame==='memory'){
