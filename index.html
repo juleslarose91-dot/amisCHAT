@@ -1177,112 +1177,306 @@ window.addEventListener("error",()=>{
 
 /* ===== Mini-jeux avec vrai ami : synchronisation réelle ===== */
 let mpState={};
-function mpKey(){return multiplayerGame?multiplayerGame.room:"";}
+
+function mpKey(){ return multiplayerGame ? multiplayerGame.room : ""; }
+
 function mpInit(){
-  if(!multiplayerGame||!multiplayerGame.room)return;
+  if(!multiplayerGame || !multiplayerGame.room) return null;
   const k=mpKey();
   if(!mpState[k]){
-    const s=[...multiplayerGame.room].reduce((a,c)=>a+c.charCodeAt(0),0);
-    mpState[k]={board:Array(9).fill(""),turn:"X",rps:{},quiz:0,memoryDeck:["🍀","⭐","🎮","💜","🍀","⭐","🎮","💜"],memoryOpen:[],memoryMatched:[],guess:1+(s%20),guessHistory:[]};
+    mpState[k]={
+      board:Array(9).fill(""),
+      turn:"X",
+      rps:{},
+      quiz:0,
+      memoryDeck:["🍀","⭐","🎮","💜","🍀","⭐","🎮","💜"],
+      memoryOpen:[],
+      memoryMatched:[],
+      memoryResolving:false,
+      guessHistory:[]
+    };
   }
   return mpState[k];
 }
-function mpRole(){return multiplayerGame?.role||"X";}
-function mpEmit(type,value){if(multiplayerGame&&amichatSocket)amichatSocket.emit("gameAction",{room:multiplayerGame.room,game:multiplayerGame.game,type,value});}
-function mpMorpionMove(i){
- const s=mpInit(); if(!s||s.turn!==mpRole()||s.board[i]||morpionWinner(s.board))return;
- const v={i,mark:mpRole()}; s.board[i]=v.mark;s.turn=v.mark==="X"?"O":"X";mpEmit("morpionMove",v);render();
-}
-function mpRps(choice){const s=mpInit();s.rps[mpRole()]=choice;mpEmit("rps",choice);render();}
-function mpQuizAnswer(n){mpEmit("quizAnswer",n);const out=$("mpResult");if(out)out.textContent="Réponse envoyée à ton ami 🤝";}
-function mpMemoryFlip(i){
- const s=mpInit(); if(!s||s.turn!==mpRole()||s.memoryMatched.includes(i)||s.memoryOpen.includes(i)||s.memoryOpen.length>=2)return;
- s.memoryOpen.push(i);
- const next=s.memoryOpen.length===2?(mpRole()==="X"?"O":"X"):s.turn;
- mpEmit("memoryFlip",{i,turn:next});
- if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);s.turn=next;setTimeout(()=>{s.memoryOpen=[];render();},650)}
- render();
-}
-function mpRestart(){const s=mpInit();if(!s)return;s.board=Array(9).fill("");s.turn="X";s.rps={};s.quiz=0;s.memoryOpen=[];s.memoryMatched=[];s.guessHistory=[];mpEmit("restart",{});render();}
-function mpGuess(n){
- const s=mpInit();n=Number(n);if(!n||n<1||n>20)return;s.guessHistory.push({who:mpRole(),n});mpEmit("guess",n);render();
-}
-function renderSelectedGame(r){
- if(multiplayerGame&&multiplayerGame.pending&&multiplayerGame.game===selectedGame){
-  const names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
-  r.innerHTML=gameShell(names[selectedGame]||'Mini-jeu','🎮',`<div class="rule"><div class="gameHint">💌 Invitation envoyée à <b>${esc(multiplayerGame.friend)}</b>.</div><div class="gameResult">⏳ En attente de sa réponse…</div></div>`);return;
- }
- if(multiplayerGame&&multiplayerGame.active&&multiplayerGame.game===selectedGame){
-  const s=mpInit(), names={morpion:'Morpion',rps:'Pierre • Feuille • Ciseaux',quiz:'Quiz',memory:'Memory',guess:'Devine le nombre'};
-  let body='';
-  if(selectedGame==='morpion'){
-   const win=morpionWinner(s.board);
-   const myTurn=!win&&s.turn===mpRole();
-   const winnerText=win==="draw"
-     ?"🤝 Match nul !"
-     :win
-       ?(win===mpRole()?"🎉 Tu as gagné !":"🎉 Ton ami a gagné !")
-       :"";
-   const turnText=winnerText||(myTurn
-     ?"✨ C'est ton tour — à toi de jouer !"
-     :"⏳ C'est au tour de ton ami");
-   body=`<div class="gameHint">❌⭕ Partie avec <b>${esc(multiplayerGame.friend)}</b> • Tu joues avec <b>${mpRole()}</b></div>
-     <div id="gameStatus" class="gameStatus">${turnText}</div>
-     <div class="gameBoard">${s.board.map((v,i)=>`<button class="gameCell" ${(!myTurn||v||win)?'disabled':''} onclick="mpMorpionMove(${i})">${v}</button>`).join("")}</div>`;
-  }else if(selectedGame==='rps'){
-   const mine=s.rps[mpRole()]||"?", other=s.rps[mpRole()==="X"?"O":"X"]||"?";
-   const mine=s.rps[mpRole()]||"", other=s.rps[mpRole()==="X"?"O":"X"]||"";
-   let result="Choisis ton coup ✨", done=!!(mine&&other);
-   if(mine&&!other) result="⏳ En attente du choix de ton ami…";
-   if(done){const win=(a,b)=>(a==="🪨"&&b==="✂️")||(a==="📄"&&b==="🪨")||(a==="✂️"&&b==="📄");result=mine===other?"🤝 Égalité !":win(mine,other)?"🏆 Tu as gagné ! 🎉":"🏆 Ton ami a gagné ! 🎉";}
-   body=`<p>Choisis ton coup :</p><div class="rpsChoices"><button class="btn" ${mine?'disabled':''} onclick="mpRps('🪨')">🪨</button><button class="btn" ${mine?'disabled':''} onclick="mpRps('📄')">📄</button><button class="btn" ${mine?'disabled':''} onclick="mpRps('✂️')">✂️</button></div><div class="gameResult">Toi : ${mine||"❓"} • Ton ami : ${other||"❓"}<br>${result}</div>${done?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:''}`;
-  }else if(selectedGame==='quiz'){
-   const q=quizBank[s.quiz%quizBank.length];body=`<p><b>${esc(q.q)}</b></p>${q.a.map((a,i)=>`<button class="btn" style="margin:4px" onclick="mpQuizAnswer(${i})">${esc(a)}</button>`).join("")}<div id="mpResult" class="gameResult">Répondez tous les deux 🤝</div>`;
-  }else if(selectedGame==='memory'){
-   const won=s.memoryMatched.length===s.memoryDeck.length, myTurn=!won&&s.turn===mpRole();
-   const status=won?`🏆 <b>Bravo ! Vous avez gagné tous les deux !</b> 🎉`:myTurn?`✨ <b>C'est ton tour</b> — retourne deux cartes.`:`⏳ <b>C'est au tour de ton ami</b> — attends son coup.`;
-   body=`<div class="mpTurn ${myTurn?'myTurn':'friendTurn'}">${status}</div><div class="memoryBoard">${s.memoryDeck.map((x,i)=>{const open=s.memoryOpen.includes(i)||s.memoryMatched.includes(i);const disabled=!myTurn||open||s.memoryOpen.length>=2;return `<button class="memoryCard${open?' flipped':''}" ${disabled?'disabled':''} onclick="mpMemoryFlip(${i})">${open?x:'❓'}</button>`}).join("")}</div><div class="gameResult">${won?'🎉 Partie terminée !':''}</div>${won?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:''}`;
-  }else{
-   const hist=s.guessHistory.slice(-6).map(x=>`${x.who==="X"?"❌":"⭕"} ${x.n}`).join(" • ");
-   body=`<p>Choisissez un nombre entre <b>1 et 20</b> à tour de rôle.</p><input id="mpGuessInput" class="guessInput" type="number" min="1" max="20"><button class="btn primary" onclick="mpGuess($('mpGuessInput').value)">Deviner 🎯</button><div class="gameResult">${hist||"À vous de jouer 🤝"}</div>`;
+
+function mpPlayerRole(){ return multiplayerGame?.role || "X"; }
+function mpOtherRole(){ return mpPlayerRole()==="X" ? "O" : "X"; }
+
+function mpEmit(type,value){
+  if(multiplayerGame && amichatSocket){
+    amichatSocket.emit("gameAction",{
+      room:multiplayerGame.room,
+      game:multiplayerGame.game,
+      type,
+      value
+    });
   }
-  r.innerHTML=gameShell(names[selectedGame]||'Mini-jeu','🎮',`<div class="rule"><div class="gameHint">🤝 Tu joues avec <b>${esc(multiplayerGame.friend)}</b> — aucun bot.</div>${body}</div>`);return;
- }
- renderSelectedGameSolo(r);
-}
-/* Rôle des deux vrais joueurs et synchronisation des actions */
-function attachMiniGameSync(){
- if(!amichatSocket||amichatSocket.__miniGameSyncAttached)return;
- amichatSocket.__miniGameSyncAttached=true;
- amichatSocket.on("gameInviteResponse",data=>{
-   if(!data?.accepted)return;
-   if(multiplayerGame&&multiplayerGame.room===String(data.room||"")){
-     multiplayerGame.role=data.me?"O":"X";
-     mpInit();
-     if(screen==="game"&&selectedGame===multiplayerGame.game)render();
-   }
- });
- amichatSocket.on("gameAction",data=>{
-   if(!multiplayerGame||String(data?.game||"")!==multiplayerGame.game)return;
-   const s=mpInit(); if(!s)return;
-   if(data.type==="morpionMove"&&data.value&&Number.isInteger(Number(data.value.i))){
-     const i=Number(data.value.i);if(!s.board[i]){s.board[i]=data.value.mark;s.turn=data.value.mark==="X"?"O":"X";}
-   }else if(data.type==="rps"){s.rps[mpRole()==="X"?"O":"X"]=data.value;}
-   else if(data.type==="quizAnswer"){const out=$("mpResult");if(out)out.textContent=`Ton ami a choisi : ${data.value}`;}
-   else if(data.type==="memoryFlip"){
-     const i=Number(data.value?.i ?? data.value);if(!s.memoryMatched.includes(i)&&!s.memoryOpen.includes(i))s.memoryOpen.push(i);
-     if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);s.turn=String(data.value?.turn||s.turn);setTimeout(()=>{s.memoryOpen=[];render();},650);}
-   }else if(data.type==="restart"){
-     s.board=Array(9).fill("");s.turn="X";s.rps={};s.quiz=0;s.memoryOpen=[];s.memoryMatched=[];s.guessHistory=[];
-   }else if(data.type==="guess"){s.guessHistory.push({who:mpRole()==="X"?"O":"X",n:Number(data.value)});}
-   if(screen==="game"&&selectedGame===multiplayerGame.game)render();
- });
 }
 
+function mpMorpionMove(i){
+  const st=mpInit();
+  if(!st || st.turn!==mpPlayerRole() || st.board[i] || morpionWinner(st.board)) return;
+
+  st.board[i]=mpPlayerRole();
+  st.turn=mpOtherRole();
+  mpEmit("morpionMove",{i,mark:mpPlayerRole()});
+  render();
+}
+
+function mpRps(choice){
+  const st=mpInit();
+  if(!st || st.rps[mpPlayerRole()]) return;
+  st.rps[mpPlayerRole()]=choice;
+  mpEmit("rps",choice);
+  render();
+}
+
+function mpQuizAnswer(n){
+  mpEmit("quizAnswer",n);
+  const out=$("mpResult");
+  if(out) out.textContent="Réponse envoyée à ton ami 🤝";
+}
+
+function finishMemoryTurn(st,nextTurn,delay=700){
+  st.memoryResolving=true;
+  setTimeout(()=>{
+    st.memoryOpen=[];
+    st.turn=nextTurn;
+    st.memoryResolving=false;
+    if(screen==="game" && selectedGame==="memory") render();
+  },delay);
+}
+
+function mpMemoryFlip(i){
+  const st=mpInit();
+  if(!st || st.memoryResolving || st.turn!==mpPlayerRole()) return;
+  if(st.memoryMatched.includes(i) || st.memoryOpen.includes(i) || st.memoryOpen.length>=2) return;
+
+  st.memoryOpen.push(i);
+
+  if(st.memoryOpen.length===1){
+    mpEmit("memoryFlip",{i,resolve:false});
+    render();
+    return;
+  }
+
+  const [a,b]=st.memoryOpen;
+  const matched=st.memoryDeck[a]===st.memoryDeck[b];
+  if(matched) st.memoryMatched.push(a,b);
+
+  const nextTurn=mpOtherRole();
+  mpEmit("memoryFlip",{i,resolve:true,matched,turn:nextTurn});
+  finishMemoryTurn(st,nextTurn);
+  render();
+}
+
+function mpRestart(){
+  const st=mpInit();
+  if(!st) return;
+
+  st.board=Array(9).fill("");
+  st.turn="X";
+  st.rps={};
+  st.quiz=0;
+  st.memoryOpen=[];
+  st.memoryMatched=[];
+  st.memoryResolving=false;
+  st.guessHistory=[];
+
+  mpEmit("restart",{});
+  render();
+}
+
+function mpGuess(n){
+  const st=mpInit();
+  n=Number(n);
+  if(!st || !n || n<1 || n>20) return;
+  st.guessHistory.push({who:mpPlayerRole(),n});
+  mpEmit("guess",n);
+  render();
+}
+
+function renderSelectedGame(r){
+  if(multiplayerGame && multiplayerGame.pending && multiplayerGame.game===selectedGame){
+    const names={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+    r.innerHTML=gameShell(names[selectedGame]||"Mini-jeu","🎮",
+      `<div class="rule"><div class="gameHint">💌 Invitation envoyée à <b>${esc(multiplayerGame.friend)}</b>.</div><div class="gameResult">⏳ En attente de sa réponse…</div></div>`);
+    return;
+  }
+
+  if(multiplayerGame && multiplayerGame.active && multiplayerGame.game===selectedGame){
+    const st=mpInit();
+    const names={morpion:"Morpion",rps:"Pierre • Feuille • Ciseaux",quiz:"Quiz",memory:"Memory",guess:"Devine le nombre"};
+    let body="";
+
+    if(selectedGame==="morpion"){
+      const win=morpionWinner(st.board);
+      const myTurn=!win && st.turn===mpPlayerRole();
+
+      const status=win==="draw"
+        ? "🤝 Match nul ! La partie est terminée."
+        : win
+          ? (win===mpPlayerRole() ? "🏆 Tu as gagné ! 🎉" : `🏆 ${esc(multiplayerGame.friend)} a gagné ! 🎉`)
+          : (myTurn ? "✨ C’est ton tour — à toi de jouer !" : `⏳ C’est au tour de ${esc(multiplayerGame.friend)} — attends son coup.`);
+
+      body=`
+        <div class="gameHint">❌⭕ Partie avec <b>${esc(multiplayerGame.friend)}</b> • Tu joues avec <b>${mpPlayerRole()}</b></div>
+        <div class="gameStatus">${status}</div>
+        <div class="gameBoard">${st.board.map((v,i)=>
+          `<button class="gameCell" ${(!myTurn||v||win)?"disabled":""} onclick="mpMorpionMove(${i})">${v}</button>`
+        ).join("")}</div>
+        ${win?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:""}
+      `;
+
+    }else if(selectedGame==="rps"){
+      const mine=st.rps[mpPlayerRole()]||"";
+      const other=st.rps[mpOtherRole()]||"";
+      const done=!!(mine && other);
+
+      let result="Choisis ton coup ✨";
+      if(mine && !other) result=`⏳ En attente du choix de ${esc(multiplayerGame.friend)}…`;
+      if(done){
+        const win=(a,b)=>
+          (a==="🪨"&&b==="✂️") ||
+          (a==="📄"&&b==="🪨") ||
+          (a==="✂️"&&b==="📄");
+        result=mine===other
+          ? "🤝 Égalité !"
+          : win(mine,other)
+            ? "🏆 Tu as gagné ! 🎉"
+            : `🏆 ${esc(multiplayerGame.friend)} a gagné ! 🎉`;
+      }
+
+      body=`
+        <p>Choisis ton coup :</p>
+        <div class="rpsChoices">
+          <button class="btn" ${mine?"disabled":""} onclick="mpRps('🪨')">🪨 <span>Pierre</span></button>
+          <button class="btn" ${mine?"disabled":""} onclick="mpRps('📄')">📄 <span>Feuille</span></button>
+          <button class="btn" ${mine?"disabled":""} onclick="mpRps('✂️')">✂️ <span>Ciseaux</span></button>
+        </div>
+        <div class="gameResult">
+          <b>Toi :</b> ${mine||"❓"} &nbsp; • &nbsp; <b>${esc(multiplayerGame.friend)} :</b> ${other||"❓"}<br>
+          ${result}
+        </div>
+        ${done?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:""}
+      `;
+
+    }else if(selectedGame==="quiz"){
+      const q=quizBank[st.quiz%quizBank.length];
+      body=`<p><b>${esc(q.q)}</b></p>${q.a.map((a,i)=>`<button class="btn" style="margin:4px" onclick="mpQuizAnswer(${i})">${esc(a)}</button>`).join("")}<div id="mpResult" class="gameResult">Répondez tous les deux 🤝</div>`;
+
+    }else if(selectedGame==="memory"){
+      const won=st.memoryMatched.length===st.memoryDeck.length;
+      const myTurn=!won && !st.memoryResolving && st.turn===mpPlayerRole();
+      const status=won
+        ? "🏆 Bravo ! Le Memory est terminé ! 🎉"
+        : st.memoryResolving
+          ? "✨ Vérification des cartes…"
+          : myTurn
+            ? "✨ C’est ton tour — retourne deux cartes."
+            : `⏳ C’est au tour de ${esc(multiplayerGame.friend)} — attends son coup.`;
+
+      body=`
+        <div class="mpTurn ${myTurn?"myTurn":"friendTurn"}">${status}</div>
+        <div class="memoryBoard">
+          ${st.memoryDeck.map((x,i)=>{
+            const open=st.memoryOpen.includes(i)||st.memoryMatched.includes(i);
+            const disabled=!myTurn || open || st.memoryOpen.length>=2;
+            return `<button class="memoryCard${open?" flipped":""}" ${disabled?"disabled":""} onclick="mpMemoryFlip(${i})">${open?x:"❓"}</button>`;
+          }).join("")}
+        </div>
+        <div class="gameResult">${won?"🎉 Partie terminée !":`${st.memoryMatched.length/2} paire(s) trouvée(s)`}</div>
+        ${won?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:""}
+      `;
+
+    }else{
+      const hist=st.guessHistory.slice(-6).map(x=>`${x.who==="X"?"❌":"⭕"} ${x.n}`).join(" • ");
+      body=`<p>Choisissez un nombre entre <b>1 et 20</b> à tour de rôle.</p><input id="mpGuessInput" class="guessInput" type="number" min="1" max="20"><button class="btn primary" onclick="mpGuess($('mpGuessInput').value)">Deviner 🎯</button><div class="gameResult">${hist||"À vous de jouer 🤝"}</div>`;
+    }
+
+    r.innerHTML=gameShell(names[selectedGame]||"Mini-jeu","🎮",
+      `<div class="rule"><div class="gameHint">🤝 Tu joues avec <b>${esc(multiplayerGame.friend)}</b> — aucun bot.</div>${body}</div>`);
+    return;
+  }
+
+  renderSelectedGameSolo(r);
+}
+
+/* Synchronisation des actions entre les deux vrais joueurs */
+function attachMiniGameSync(){
+  if(!amichatSocket || amichatSocket.__miniGameSyncAttached) return;
+  amichatSocket.__miniGameSyncAttached=true;
+
+  amichatSocket.on("gameInviteResponse",data=>{
+    if(!data?.accepted) return;
+    if(multiplayerGame && multiplayerGame.room===String(data.room||"")){
+      multiplayerGame.role=data.me ? "O" : "X";
+      mpInit();
+      if(screen==="game" && selectedGame===multiplayerGame.game) render();
+    }
+  });
+
+  amichatSocket.on("gameAction",data=>{
+    if(!multiplayerGame || String(data?.game||"")!==String(multiplayerGame.game||"")) return;
+    const st=mpInit();
+    if(!st) return;
+
+    if(data.type==="morpionMove" && data.value && Number.isInteger(Number(data.value.i))){
+      const i=Number(data.value.i);
+      if(!st.board[i]){
+        st.board[i]=String(data.value.mark||mpOtherRole());
+        st.turn=st.board[i]==="X" ? "O" : "X";
+      }
+
+    }else if(data.type==="rps"){
+      if(!st.rps[mpOtherRole()]) st.rps[mpOtherRole()]=data.value;
+
+    }else if(data.type==="quizAnswer"){
+      const out=$("mpResult");
+      if(out) out.textContent=`Ton ami a choisi : ${data.value}`;
+
+    }else if(data.type==="memoryFlip"){
+      const i=Number(data.value?.i ?? data.value);
+      if(Number.isInteger(i) && i>=0 && i<st.memoryDeck.length && !st.memoryMatched.includes(i) && !st.memoryOpen.includes(i)){
+        st.memoryOpen.push(i);
+      }
+
+      if(data.value?.resolve && st.memoryOpen.length>=2){
+        const [a,b]=st.memoryOpen;
+        const matched=!!data.value.matched;
+        if(matched && !st.memoryMatched.includes(a) && !st.memoryMatched.includes(b)){
+          st.memoryMatched.push(a,b);
+        }
+        const nextTurn=String(data.value.turn||st.turn);
+        finishMemoryTurn(st,nextTurn);
+      }
+
+    }else if(data.type==="restart"){
+      st.board=Array(9).fill("");
+      st.turn="X";
+      st.rps={};
+      st.quiz=0;
+      st.memoryOpen=[];
+      st.memoryMatched=[];
+      st.memoryResolving=false;
+      st.guessHistory=[];
+
+    }else if(data.type==="guess"){
+      st.guessHistory.push({who:mpOtherRole(),n:Number(data.value)});
+    }
+
+    if(screen==="game" && selectedGame===multiplayerGame.game) render();
+  });
+}
 
 const __oldConnectMultiplayer=window.connectMultiplayer||connectMultiplayer;
-window.connectMultiplayer=function(){ const out=__oldConnectMultiplayer.apply(this,arguments); setTimeout(attachMiniGameSync,0); return out; };
+window.connectMultiplayer=function(){
+  const out=__oldConnectMultiplayer.apply(this,arguments);
+  setTimeout(attachMiniGameSync,0);
+  return out;
+};
 attachMiniGameSync();
+
 </script>
 
 
