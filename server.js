@@ -13,6 +13,8 @@ const usersByName = new Map();
 const requestsByUser = new Map();
 const friendsByUser = new Map();
 const messagesByRoom = new Map();
+// Invitations de mini-jeux en attente (pour transmettre la même partie aux deux amis).
+const gameInvites = new Map();
 const fs = require("fs");
 const DATA_FILE = path.join(__dirname, "amichat-data.json");
 
