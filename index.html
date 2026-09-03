@@ -1196,11 +1196,14 @@ function mpMorpionMove(i){
 function mpRps(choice){const s=mpInit();s.rps[mpRole()]=choice;mpEmit("rps",choice);render();}
 function mpQuizAnswer(n){mpEmit("quizAnswer",n);const out=$("mpResult");if(out)out.textContent="Réponse envoyée à ton ami 🤝";}
 function mpMemoryFlip(i){
- const s=mpInit(); if(!s||s.memoryMatched.includes(i)||s.memoryOpen.includes(i)||s.memoryOpen.length>=2)return;
- s.memoryOpen.push(i);mpEmit("memoryFlip",i);
- if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);setTimeout(()=>{s.memoryOpen=[];render();},600)}
+ const s=mpInit(); if(!s||s.turn!==mpRole()||s.memoryMatched.includes(i)||s.memoryOpen.includes(i)||s.memoryOpen.length>=2)return;
+ s.memoryOpen.push(i);
+ const next=s.memoryOpen.length===2?(mpRole()==="X"?"O":"X"):s.turn;
+ mpEmit("memoryFlip",{i,turn:next});
+ if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);s.turn=next;setTimeout(()=>{s.memoryOpen=[];render();},650)}
  render();
 }
+function mpRestart(){const s=mpInit();if(!s)return;s.board=Array(9).fill("");s.turn="X";s.rps={};s.quiz=0;s.memoryOpen=[];s.memoryMatched=[];s.guessHistory=[];mpEmit("restart",{});render();}
 function mpGuess(n){
  const s=mpInit();n=Number(n);if(!n||n<1||n>20)return;s.guessHistory.push({who:mpRole(),n});mpEmit("guess",n);render();
 }
@@ -1232,7 +1235,9 @@ function renderSelectedGame(r){
   }else if(selectedGame==='quiz'){
    const q=quizBank[s.quiz%quizBank.length];body=`<p><b>${esc(q.q)}</b></p>${q.a.map((a,i)=>`<button class="btn" style="margin:4px" onclick="mpQuizAnswer(${i})">${esc(a)}</button>`).join("")}<div id="mpResult" class="gameResult">Répondez tous les deux 🤝</div>`;
   }else if(selectedGame==='memory'){
-   body=`<div class="memoryBoard">${s.memoryDeck.map((x,i)=>{const open=s.memoryOpen.includes(i)||s.memoryMatched.includes(i);return `<button class="memoryCard${open?' flipped':''}" onclick="mpMemoryFlip(${i})">${open?x:'❓'}</button>`}).join("")}</div><div class="gameResult">Trouvez les paires ensemble 🤝</div>`;
+   const won=s.memoryMatched.length===s.memoryDeck.length, myTurn=!won&&s.turn===mpRole();
+   const status=won?`🏆 <b>Bravo ! Vous avez gagné tous les deux !</b> 🎉`:myTurn?`✨ <b>C'est ton tour</b> — retourne deux cartes.`:`⏳ <b>C'est au tour de ton ami</b> — attends son coup.`;
+   body=`<div class="mpTurn ${myTurn?'myTurn':'friendTurn'}">${status}</div><div class="memoryBoard">${s.memoryDeck.map((x,i)=>{const open=s.memoryOpen.includes(i)||s.memoryMatched.includes(i);const disabled=!myTurn||open||s.memoryOpen.length>=2;return `<button class="memoryCard${open?' flipped':''}" ${disabled?'disabled':''} onclick="mpMemoryFlip(${i})">${open?x:'❓'}</button>`}).join("")}</div><div class="gameResult">${won?'🎉 Partie terminée !':''}</div>${won?`<div class="gameActions"><button class="btn primary" onclick="mpRestart()">🔄 Recommencer</button></div>`:''}`;
   }else{
    const hist=s.guessHistory.slice(-6).map(x=>`${x.who==="X"?"❌":"⭕"} ${x.n}`).join(" • ");
    body=`<p>Choisissez un nombre entre <b>1 et 20</b> à tour de rôle.</p><input id="mpGuessInput" class="guessInput" type="number" min="1" max="20"><button class="btn primary" onclick="mpGuess($('mpGuessInput').value)">Deviner 🎯</button><div class="gameResult">${hist||"À vous de jouer 🤝"}</div>`;
@@ -1261,8 +1266,10 @@ function attachMiniGameSync(){
    }else if(data.type==="rps"){s.rps[mpRole()==="X"?"O":"X"]=data.value;}
    else if(data.type==="quizAnswer"){const out=$("mpResult");if(out)out.textContent=`Ton ami a choisi : ${data.value}`;}
    else if(data.type==="memoryFlip"){
-     const i=Number(data.value);if(!s.memoryMatched.includes(i)&&!s.memoryOpen.includes(i))s.memoryOpen.push(i);
-     if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);setTimeout(()=>{s.memoryOpen=[];render();},600);}
+     const i=Number(data.value?.i ?? data.value);if(!s.memoryMatched.includes(i)&&!s.memoryOpen.includes(i))s.memoryOpen.push(i);
+     if(s.memoryOpen.length===2){const [a,b]=s.memoryOpen;if(s.memoryDeck[a]===s.memoryDeck[b])s.memoryMatched.push(a,b);s.turn=String(data.value?.turn||s.turn);setTimeout(()=>{s.memoryOpen=[];render();},650);}
+   }else if(data.type==="restart"){
+     s.board=Array(9).fill("");s.turn="X";s.rps={};s.quiz=0;s.memoryOpen=[];s.memoryMatched=[];s.guessHistory=[];
    }else if(data.type==="guess"){s.guessHistory.push({who:mpRole()==="X"?"O":"X",n:Number(data.value)});}
    if(screen==="game"&&selectedGame===multiplayerGame.game)render();
  });
