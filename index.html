@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17113b">
-<title>AmiChat v3</title>
+<title>AmiChat — Chat & mini-jeux</title>
+<meta name="description" content="AmiChat — discute avec tes amis et joue à des mini-jeux dans une interface conviviale.">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap');
 *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Nunito,system-ui,sans-serif;color:#fff;background:radial-gradient(circle at 10% 10%,#a855f766,transparent 30%),radial-gradient(circle at 90% 15%,#22d3ee44,transparent 26%),linear-gradient(135deg,#09051a,#17113b 55%,#061b2b)}
@@ -103,6 +104,16 @@ header{position:relative}
 /* ===== Mini-jeux supplémentaires ===== */
 .gamesGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:760px;margin:16px auto}.gameCard{padding:18px;border:1px solid #ffffff18;border-radius:18px;background:#ffffff08;text-align:left;cursor:pointer;color:#fff}.gameCard:hover{transform:translateY(-2px);background:#ffffff12}.gameCard .gicon{font-size:32px;display:block;margin-bottom:7px}.gameArea{max-width:560px;margin:16px auto;text-align:center}.memoryBoard{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:15px auto}.memoryCard{min-height:64px;border-radius:14px;border:1px solid #ffffff18;background:#ffffff12;color:#fff;font-size:26px;cursor:pointer}.memoryCard.flipped{background:linear-gradient(135deg,#7c3aed,#06b6d4)}.rpsChoices{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0}.rpsChoices button{font-size:26px;min-width:100px}.quizOption{display:block;width:100%;margin:8px 0;text-align:left}.guessInput{max-width:240px;margin:12px auto;display:block}.gameResult{min-height:28px;font-weight:900;margin:10px 0}.gamesBack{margin-bottom:8px}.friendToast{position:fixed;top:92px;left:50%;transform:translate(-50%,-20px) scale(.96);width:min(420px,calc(100% - 30px));padding:18px 20px;border-radius:22px;background:linear-gradient(135deg,#221a3ddd,#101827ee);border:1px solid #ffffff24;box-shadow:0 20px 60px #0009;display:flex;align-items:center;gap:14px;z-index:20;opacity:0;pointer-events:none;transition:.28s}.friendToast.show{opacity:1;transform:translate(-50%,0) scale(1)}.friendToastIcon{font-size:38px;filter:drop-shadow(0 5px 12px #7c3aed88)}.friendToast b{display:block;font-size:16px;margin-bottom:3px}.friendToast span{font-size:13px;color:#dbeafe}.friendToast.sent{border-color:#22d3ee55}.friendToast.accepted{border-color:#34d39966}.friendToast.refused{border-color:#fb718566}@media(max-width:650px){.gamesGrid{grid-template-columns:1fr}.memoryCard{min-height:56px}}
 
+
+
+/* ===== Guide "Comment jouer ?" — design amélioré, sans changer les jeux ===== */
+.howToBtn{margin:10px auto 0;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid #a78bfa66;border-radius:14px;background:linear-gradient(135deg,#7c3aed33,#06b6d422);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 8px 24px #0004;transition:.2s}.howToBtn:hover{transform:translateY(-2px);border-color:#22d3eeaa;filter:brightness(1.08)}
+.howToOverlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;background:#050816b8;backdrop-filter:blur(8px);animation:howToFade .2s ease}
+.howToModal{width:min(680px,96vw);max-height:min(88vh,900px);overflow:auto;position:relative;padding:22px;border-radius:28px;color:#eef2ff;background:radial-gradient(circle at 50% 0,#1b3155aa,transparent 38%),linear-gradient(145deg,#17182f,#10182a);border:1px solid #7c3aed88;box-shadow:0 30px 100px #000b,0 0 42px #7c3aed33}
+.howToClose{position:absolute;right:16px;top:15px;width:42px;height:42px;border:0;border-radius:50%;background:#ffffff12;color:#fff;font-size:28px;cursor:pointer}.howToClose:hover{background:#ffffff22}
+.howToHead{text-align:center;padding:2px 45px 14px}.howToHead .howIcon{width:70px;height:70px;margin:0 auto 7px;display:grid;place-items:center;border-radius:25px;font-size:36px;background:linear-gradient(135deg,#7c3aed,#06b6d4);box-shadow:0 0 28px #8b5cf699}.howToHead h2{margin:4px 0 0;font-size:31px}.howToHead p{margin:5px 0 0;color:#b9c4dc}
+.howToList{display:grid;gap:10px}.howToCard{display:grid;grid-template-columns:105px 1fr 38px;align-items:center;gap:14px;padding:14px;border-radius:20px;border:1px solid #ffffff16;background:linear-gradient(90deg,#ffffff0a,#ffffff05);box-shadow:inset 0 1px 0 #ffffff08}.howToCard:hover{border-color:#ffffff2b}.howToGameIcon{min-height:76px;display:grid;place-items:center;font-size:31px;border-radius:16px;background:#ffffff08;border-right:1px solid #ffffff14}.howToText h3{margin:0 0 5px;font-size:20px}.howToText p{margin:0;color:#d2d8e8;line-height:1.45}.howToArrow{font-size:28px;color:#9ca3af}.howToCard:nth-child(1){border-left:3px solid #fb5b32}.howToCard:nth-child(1) h3{color:#ffb48d}.howToCard:nth-child(2){border-left:3px solid #4f8cff}.howToCard:nth-child(2) h3{color:#9dc3ff}.howToCard:nth-child(3){border-left:3px solid #c15cff}.howToCard:nth-child(3) h3{color:#e0a7ff}.howToCard:nth-child(4){border-left:3px solid #55d889}.howToCard:nth-child(4) h3{color:#8beab0}.howToCard:nth-child(5){border-left:3px solid #38bdf8}.howToCard:nth-child(5) h3{color:#7dd3fc}.howToTip{margin-top:12px;padding:13px 16px;border-radius:16px;text-align:center;color:#e9e7ff;background:linear-gradient(90deg,#7c3aed22,#06b6d422);border:1px solid #a78bfa33;font-weight:800}@keyframes howToFade{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}@media(max-width:560px){.howToModal{padding:16px;border-radius:22px}.howToHead h2{font-size:25px}.howToCard{grid-template-columns:62px 1fr 24px;padding:11px;gap:9px}.howToGameIcon{min-height:58px;font-size:25px}.howToText h3{font-size:16px}.howToText p{font-size:13px}.howToArrow{font-size:20px}}
+
 /* ===== AmiChat v8 — Profil premium + vraies langues FR/EN ===== */
 .profilePremium{max-width:1120px;margin:0 auto}
 .settingsHero{position:relative;overflow:hidden;padding:24px;border-radius:24px;border:1px solid #ffffff18;background:linear-gradient(135deg,#211747dd,#142b42dd);margin-bottom:16px}
@@ -171,6 +182,56 @@ header{position:relative}
 .messages .msg{font-size:16px;line-height:1.45;padding:12px 15px;max-width:88%;}
 .messages .msg .meta{font-size:13px;font-weight:700;margin-top:7px;color:#e2e8f0;}
 @media(max-width:600px){.messages .msg{font-size:16px;padding:12px 14px;max-width:92%;}.messages .msg .meta{font-size:13px;}}
+
+
+/* ===== AmiChat — finition visuelle et qualité (fonctionnalités inchangées) ===== */
+:root{color-scheme:dark}
+body{background:
+ radial-gradient(900px 560px at -10% -10%,#a855f72e,transparent 62%),
+ radial-gradient(760px 500px at 110% 0%,#22d3ee24,transparent 58%),
+ radial-gradient(700px 520px at 50% 115%,#4f46e51f,transparent 62%),
+ linear-gradient(135deg,#080513 0%,#15102f 48%,#061722 100%)}
+.card{position:relative;background:linear-gradient(145deg,#ffffff10,#ffffff07);box-shadow:0 35px 120px #000a,0 0 0 1px #ffffff08 inset}
+.card:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,#ffffff0b,transparent 28%,transparent 72%,#22d3ee08);z-index:0}
+.card>*{position:relative;z-index:1}
+header{background:linear-gradient(90deg,#ffffff06,transparent 45%,#22d3ee08)}
+.topHeart,.logo{transition:transform .2s ease,filter .2s ease}
+.topHeart:hover,.logo:hover{transform:translateY(-1px) scale(1.03);filter:brightness(1.08)}
+.btn,.menuBtn,.gameCard,.languageChoice,.reportReasonBtn,.memoryCard,.gameCell,.mpCell{transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,filter .18s ease}
+.btn:focus-visible,.menuBtn:focus-visible,.gameCard:focus-visible,.languageChoice:focus-visible,.reportReasonBtn:focus-visible,.memoryCard:focus-visible,.gameCell:focus-visible,.mpCell:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #67e8f9;outline-offset:3px}
+.btn:hover{box-shadow:0 10px 24px #0003}
+.primary,.enter,.savePremium,.profileSuccessBtn{background:linear-gradient(100deg,#6d28d9,#9333ea 48%,#0891b2)}
+.screen{scroll-behavior:smooth}
+.sideCard,.rule,.item,.premiumPanel{box-shadow:0 12px 30px #00000018,inset 0 1px #ffffff0c}
+.dashboardTop{align-items:start}
+.profileHero{background:linear-gradient(145deg,#8b5cf61a,#06b6d40b);border:1px solid #ffffff0d;border-radius:18px}
+.profilePhoto,.profileFallback{box-shadow:0 0 0 6px #8b5cf614,0 18px 38px #0007}
+.levelBox{background:linear-gradient(145deg,#0b0d20dd,#17152ddd)}
+.menuBtn,.gameCard{position:relative;overflow:hidden}
+.menuBtn:before,.gameCard:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-80px;top:-90px;background:#22d3ee10;transition:transform .3s ease}
+.menuBtn:hover:before,.gameCard:hover:before{transform:scale(1.5)}
+.menuBtn>*,.gameCard>*{position:relative}
+.menuBtn:hover,.gameCard:hover{border-color:#a78bfa77;box-shadow:0 16px 34px #00000028}
+.gamesGrid{gap:14px}
+.gameCard{min-height:150px;background:linear-gradient(145deg,#ffffff0d,#ffffff06)}
+.gameCard .gicon{filter:drop-shadow(0 8px 14px #0007)}
+.gameArea .rule{background:linear-gradient(145deg,#ffffff0d,#ffffff07)}
+.gameStatus,.gameResult{padding:10px 12px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10}
+.rpsChoices button{min-height:64px}
+.memoryCard{box-shadow:0 8px 18px #0002}
+.memoryCard:hover:not(:disabled){transform:translateY(-2px);border-color:#a78bfa88}
+.messages{background:linear-gradient(180deg,#ffffff025,transparent)}
+.msg{box-shadow:0 8px 18px #00000018}
+.composer{background:#080b1b33;backdrop-filter:blur(10px)}
+.composer input{background:#080b1be8}
+.notice{line-height:1.45}
+.toastSaved,.friendToast{backdrop-filter:blur(18px)}
+.modal{backdrop-filter:blur(6px)}
+.modalBox{animation:modalIn .2s ease both}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(max-width:900px){.sideCard{border-radius:19px}.dashboardTop{gap:10px}.gameCard{min-height:120px}}
+@media(max-width:650px){.screen{padding-bottom:24px}.sideCard{padding:12px}.profileHero{padding:14px}.gamesGrid{gap:10px}.gameCard{min-height:108px}.gameStatus,.gameResult{font-size:14px}.btn{min-height:40px}}
 
 </style></head>
 <body><div class="app"><main class="card">
@@ -407,7 +468,7 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
  if(screen==="requests"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>💌 Demandes d'amis</h2><p class="muted">Accepte ou refuse les demandes.</p><div class="list">${requests.length?requests.map((f,i)=>`<div class="item"><span>💌 <b>${esc(f)}</b> veut devenir ton ami</span><div class="itemActions"><button class="btn primary" onclick="acceptRequest(${i})">❤️ Accepter</button><button class="btn" onclick="refuseRequest(${i})">✖ Refuser</button></div></div>`).join(""):'<div class="item">Aucune demande en attente.</div>'}</div></div>`;return}
  if(screen==="groups"){r.innerHTML=`<div class="panel"><button class="btn" onclick="screen='home';render()">← Menu</button><h2>👥 Mes groupes</h2><div class="list">${groups.length?groups.map(g=>`<div class="item"><span>👥 <b>${esc(g.name)}</b><br><small class="muted">Code : ${esc(g.code)}</small></span><button class="btn primary" onclick="openChat('👥 ${esc(g.name)}','${esc(g.code)}')">Ouvrir</button></div>`).join(""):'<div class="item">Aucun groupe. Crée-en un !</div>'}</div></div>`;return}
 
- if(screen==="games"){r.innerHTML=`<div class="panel"><button class="btn gamesBack" onclick="screen='home';render()">← Menu</button><div class="welcome" style="margin-top:8px"><div class="bigIcon">🎮</div><h2>Mini-jeux</h2><p>Choisis un jeu ! Les jeux peuvent aussi te donner de l'XP ⭐</p></div><div class="gamesGrid"><button class="gameCard" onclick="openGame('morpion')"><span class="gicon">❌⭕</span><b>Morpion</b><br><small class="muted">Contre le bot 🤖</small></button><button class="gameCard" onclick="openGame('rps')"><span class="gicon">🪨📄✂️</span><b>Pierre • Feuille • Ciseaux</b><br><small class="muted">Contre le bot</small></button><button class="gameCard" onclick="openGame('quiz')"><span class="gicon">🧠</span><b>Quiz</b><br><small class="muted">Réponds aux questions</small></button><button class="gameCard" onclick="openGame('memory')"><span class="gicon">🃏</span><b>Memory</b><br><small class="muted">Trouve les paires</small></button><button class="gameCard" onclick="openGame('guess')"><span class="gicon">🔢</span><b>Devine le nombre</b><br><small class="muted">Trouve le nombre secret</small></button></div></div>`;return}
+ if(screen==="games"){r.innerHTML=`<div class="panel"><button class="btn gamesBack" onclick="screen='home';render()">← Menu</button><div class="welcome" style="margin-top:8px"><div class="bigIcon">🎮</div><h2>Mini-jeux</h2><p>Choisis un jeu ! Les jeux peuvent aussi te donner de l'XP ⭐</p><button class="howToBtn" onclick="showHowTo()">❓ Comment jouer ?</button></div><div class="gamesGrid"><button class="gameCard" onclick="openGame('morpion')"><span class="gicon">❌⭕</span><b>Morpion</b><br><small class="muted">Contre le bot 🤖</small></button><button class="gameCard" onclick="openGame('rps')"><span class="gicon">🪨📄✂️</span><b>Pierre • Feuille • Ciseaux</b><br><small class="muted">Contre le bot</small></button><button class="gameCard" onclick="openGame('quiz')"><span class="gicon">🧠</span><b>Quiz</b><br><small class="muted">Réponds aux questions</small></button><button class="gameCard" onclick="openGame('memory')"><span class="gicon">🃏</span><b>Memory</b><br><small class="muted">Trouve les paires</small></button><button class="gameCard" onclick="openGame('guess')"><span class="gicon">🔢</span><b>Devine le nombre</b><br><small class="muted">Trouve le nombre secret</small></button></div></div>`;return}
  if(screen==="game"){renderSelectedGame(r);return}
  if(screen==="mod"){
   const canManage=isOwner;
@@ -419,7 +480,13 @@ ${["AmiChat officiel","Discussion Chill","Les joueurs"].map(n=>`<div class="onli
 let selectedGame=""; let gameXPClaimed=false; let quizIndex=0, quizScore=0; let guessNumber=0, guessTries=0; let memoryDeck=[], memoryOpen=[], memoryMatched=0, memoryLock=false;
 function openGame(name){selectedGame=name;screen="game";gameXPClaimed=false;render();}
 function gameXP(amount=20){if(gameXPClaimed) return; gameXPClaimed=true; levelXP+=amount; while(levelXP>=XP_PER_LEVEL&&level<MAX_LEVEL){levelXP-=XP_PER_LEVEL;level++;} if(level>=MAX_LEVEL){level=MAX_LEVEL;levelXP=XP_PER_LEVEL;} saveProfile();}
-function gameShell(title,icon,body){return `<div class="panel"><button class="btn" onclick="screen='games';render()">← Mini-jeux</button><div class="gameArea"><div class="bigIcon">${icon}</div><h2>${title}</h2>${body}</div></div>`}
+function showHowTo(){
+ const existing=document.getElementById('howToOverlay');if(existing){existing.remove();return}
+ const overlay=document.createElement('div');overlay.id='howToOverlay';overlay.className='howToOverlay';
+ overlay.innerHTML=`<div class="howToModal" role="dialog" aria-modal="true" aria-label="Comment jouer"><button class="howToClose" aria-label="Fermer" onclick="document.getElementById('howToOverlay').remove()">×</button><div class="howToHead"><div class="howIcon">🎮</div><h2>Comment jouer ?</h2><p>Tout ce qu'il faut savoir avant de commencer.</p></div><div class="howToList"><div class="howToCard"><div class="howToGameIcon">❌⭕</div><div class="howToText"><h3>Morpion</h3><p>Aligne <b>3 symboles identiques</b> en ligne, colonne ou diagonale pour gagner.</p></div><div class="howToArrow">🏆</div></div><div class="howToCard"><div class="howToGameIcon">🪨📄✂️</div><div class="howToText"><h3>Pierre • Feuille • Ciseaux</h3><p>Choisis ton coup : 🪨 bat ✂️, ✂️ bat 📄 et 📄 bat 🪨.</p></div><div class="howToArrow">⚡</div></div><div class="howToCard"><div class="howToGameIcon">🧠</div><div class="howToText"><h3>Quiz</h3><p>Lis la question et choisis <b>la bonne réponse</b>.</p></div><div class="howToArrow">💬</div></div><div class="howToCard"><div class="howToGameIcon">🃏</div><div class="howToText"><h3>Memory</h3><p>Retourne les cartes et <b>trouve toutes les paires</b>.</p></div><div class="howToArrow">🃏</div></div><div class="howToCard"><div class="howToGameIcon">🔢</div><div class="howToText"><h3>Devine le nombre</h3><p>Le bot choisit un nombre entre <b>1 et 20</b>. Essaie de le trouver !</p></div><div class="howToArrow">🎯</div></div></div><div class="howToTip">💡 Amuse-toi bien et n'oublie pas : l'important, c'est de s'amuser ! 🎉</div></div>`;
+ overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.appendChild(overlay);
+}
+function gameShell(title,icon,body){return `<div class="panel"><button class="btn" onclick="screen='games';render()">← Mini-jeux</button><button class="howToBtn" onclick="showHowTo()">❓ Comment jouer ?</button><div class="gameArea"><div class="bigIcon">${icon}</div><h2>${title}</h2>${body}</div></div>`}
 function renderSelectedGameSolo(r){
  if(selectedGame==='morpion'){r.innerHTML=gameShell('Morpion','❌⭕',`<div class="rule"><div class="gameHint">Tu joues avec ❌ • le bot joue avec ⭕</div><div id="gameStatus" class="gameStatus">À toi de jouer !</div><div id="gameBoard" class="gameBoard"></div><div class="gameActions"><button class="btn primary" onclick="restartMorpion()">🔄 Recommencer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);setTimeout(startMorpion,0);return}
  if(selectedGame==='rps'){r.innerHTML=gameShell('Pierre • Feuille • Ciseaux','🪨📄✂️',`<div class="rule"><p>Choisis ton coup contre le bot 🤖</p><div class="rpsChoices"><button class="btn" onclick="playRPS('🪨')">🪨</button><button class="btn" onclick="playRPS('📄')">📄</button><button class="btn" onclick="playRPS('✂️')">✂️</button></div><div id="rpsResult" class="gameResult">À toi !</div><div class="gameActions"><button class="btn primary" onclick="openGame('rps')">🔄 Rejouer</button><button class="btn" onclick="inviteFriendToGame()">👥 Inviter un ami à jouer</button></div></div>`);return}
